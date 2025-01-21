@@ -1,0 +1,11 @@
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-20 10:25:18 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250120-102518.log[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-20 10:25:18 - SQLiteDataset.__init__ - Dataset is empty.[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-20 10:25:19 - StandardModel.main - DeprecationWarning: Argument `gnn` will be deprecated in GraphNeT 2.0. Please use `backbone` instead.[0m
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-20 10:25:19 - StandardModel.<module> - Column names for predictions are: 
+ ['position_x_pred', 'position_y_pred', 'position_z_pred'][0m
+GPU available: True (cuda), used: False
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs

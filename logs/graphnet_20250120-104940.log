@@ -1,0 +1,22 @@
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-20 10:49:40 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250120-104940.log[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-20 10:49:52 - StandardModel.main - DeprecationWarning: Argument `gnn` will be deprecated in GraphNeT 2.0. Please use `backbone` instead.[0m
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+You are using a CUDA device ('NVIDIA GeForce RTX 3090') that has Tensor Cores. To properly utilize them, you should set `torch.set_float32_matmul_precision('medium' | 'high')` which will trade-off precision for performance. For more details, read https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html#torch.set_float32_matmul_precision
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1]
+
+  | Name              | Type       | Params | Mode 
+---------------------------------------------------------
+0 | _tasks            | ModuleList | 387    | train
+1 | _graph_definition | KNNGraph   | 0      | train
+2 | backbone          | DynEdge    | 1.4 M  | train
+---------------------------------------------------------
+1.4 M     Trainable params
+0         Non-trainable params
+1.4 M     Total params
+5.530     Total estimated model params size (MB)
+35        Modules in train mode
+0         Modules in eval mode
+
+Detected KeyboardInterrupt, attempting graceful shutdown ...

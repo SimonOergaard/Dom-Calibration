@@ -66,19 +66,19 @@ def main_icecube_upgrade(backend: str) -> None:
     # Check(s)
     assert backend in CONVERTER_CLASS
 
-    inputs = "/groups/icecube/simon/GNN/workspace/data/I3_files/" #"/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
+    inputs = "/groups/icecube/simon/GNN/workspace/data/I3_files/132028_part2/" #"/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
     outdir =  "/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/"#"/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
     gcd_rescue = (
         "/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/GCD/GeoCalibDetectorStatus_ICUpgrade.v58.mixed.V1.i3.bz2"
     )
-    workers = 1
+    workers = 8
 
     converter: DataConverter = CONVERTER_CLASS[backend](
         extractors=[
             I3TruthExtractor(),
             I3PISAExtractor('I3MMCTrackList'),
             #I3RetroExtractor(),
-            #I3FeatureExtractorIceCubeUpgrade("SplitInIcePulsesSRT"),
+            I3FeatureExtractorIceCubeUpgrade("SplitInIcePulsesSRT"),
             #I3ParticleExtractor("I3MCTree"),
             #I3FeatureExtractorIceCube86("SplitInIcePulsesSRT"),
             #I3FeatureExtractorIceCubeUpgrade("I3MCTree"),

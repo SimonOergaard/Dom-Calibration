@@ -1,0 +1,19 @@
+Training on 10000 events and validating on 5000 events.
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 11:42:44 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250121-114244.log[0m
+Traceback (most recent call last):
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 214, in <module>
+    main()
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 179, in main
+    trainer = Trainer(
+              ^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/pytorch_lightning/utilities/argparse.py", line 70, in insert_env_defaults
+    return fn(self, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/pytorch_lightning/trainer/trainer.py", line 395, in __init__
+    self._accelerator_connector = _AcceleratorConnector(
+                                  ^^^^^^^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/pytorch_lightning/trainer/connectors/accelerator_connector.py", line 145, in __init__
+    self._check_device_config_and_set_final_flags(devices=devices, num_nodes=num_nodes)
+  File "/groups/icecube/simon/Icecube/src/pytorch_lightning/trainer/connectors/accelerator_connector.py", line 326, in _check_device_config_and_set_final_flags
+    raise MisconfigurationException(
+lightning_fabric.utilities.exceptions.MisconfigurationException: `Trainer(devices=0)` value is not a valid input using cuda accelerator.

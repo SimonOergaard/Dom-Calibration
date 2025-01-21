@@ -1,0 +1,7 @@
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-14 10:03:09 - I3TruthExtractor.__init__ - Writing log to [1mlogs/graphnet_20250114-100309.log[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-14 10:03:09 - SQLiteDataConverter.<module> - SQLiteDataConverter will be deprecated in GraphNeT 2.0. Please use I3ToSQLiteConverter instead.[0m
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-14 10:03:09 - SQLiteDataConverter.__call__ - Processing 1 file(s) in main thread (not multiprocessing)[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-14 10:03:21 - SQLiteWriter._process_file - No data was extracted from the processed I3 file(s). No data saved to /groups/icecube/simon/GNN/workspace/data/Converted_I3_file/upgrade_muongun_step1_132028_000000.db[0m
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-14 10:03:21 - SQLiteDataConverter.<module> - Merging files to /groups/icecube/simon/GNN/workspace/data/Converted_I3_file/merged[0m
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-14 10:03:21 - SQLiteWriter.main_icecube_upgrade - Merging 1 database files[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-14 10:03:21 - SQLiteWriter.merge_files - Database /groups/icecube/simon/GNN/workspace/data/Converted_I3_file/upgrade_muongun_step1_132028_000000.db is empty. Skipping.[0m

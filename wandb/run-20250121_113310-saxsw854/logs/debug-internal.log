@@ -1,0 +1,18 @@
+{"time":"2025-01-21T11:33:10.763412342+01:00","level":"INFO","msg":"using version","core version":"0.18.1"}
+{"time":"2025-01-21T11:33:10.78174609+01:00","level":"INFO","msg":"created symlink","path":"/lustre/hpc/icecube/simon/GNN/workspace/Scribts/wandb/run-20250121_113310-saxsw854/logs/debug-core.log"}
+{"time":"2025-01-21T11:33:10.782161856+01:00","level":"INFO","msg":"using version","core version":"0.18.1"}
+{"time":"2025-01-21T11:33:10.782175566+01:00","level":"INFO","msg":"created symlink","path":"/lustre/hpc/icecube/simon/GNN/workspace/Scribts/wandb/run-20250121_113310-saxsw854/logs/debug-core.log"}
+{"time":"2025-01-21T11:33:10.78513545+01:00","level":"INFO","msg":"created new stream","id":"saxsw854"}
+{"time":"2025-01-21T11:33:10.78516711+01:00","level":"INFO","msg":"stream: started","id":"saxsw854"}
+{"time":"2025-01-21T11:33:10.785211451+01:00","level":"INFO","msg":"sender: started","stream_id":{"value":"saxsw854"}}
+{"time":"2025-01-21T11:33:10.785202301+01:00","level":"INFO","msg":"writer: Do: started","stream_id":{"value":"saxsw854"}}
+{"time":"2025-01-21T11:33:10.785233961+01:00","level":"INFO","msg":"handler: started","stream_id":{"value":"saxsw854"}}
+{"time":"2025-01-21T11:33:11.085746111+01:00","level":"INFO","msg":"wandb-core","!BADKEY":null}
+{"time":"2025-01-21T11:33:11.09386547+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-21T11:34:24.58691006+01:00","level":"INFO","msg":"stream: closing","id":"saxsw854"}
+{"time":"2025-01-21T11:34:24.586963241+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-21T11:34:24.587275245+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-21T11:34:28.781151169+01:00","level":"INFO","msg":"handler: closed","stream_id":{"value":"saxsw854"}}
+{"time":"2025-01-21T11:34:28.7812369+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":{"value":"saxsw854"}}
+{"time":"2025-01-21T11:34:28.78124088+01:00","level":"INFO","msg":"sender: closed","stream_id":{"value":"saxsw854"}}
+{"time":"2025-01-21T11:34:28.781594555+01:00","level":"INFO","msg":"stream: closed","id":"saxsw854"}

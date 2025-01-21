@@ -1,0 +1,4 @@
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-14 09:06:42 - I3TruthExtractor.__init__ - Writing log to [1mlogs/graphnet_20250114-090642.log[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-14 09:06:42 - SQLiteDataConverter.<module> - SQLiteDataConverter will be deprecated in GraphNeT 2.0. Please use I3ToSQLiteConverter instead.[0m
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-14 09:06:42 - SQLiteDataConverter.__call__ - Processing 0 file(s) in main thread (not multiprocessing)[0m
+[1;34mgraphnet[0m [MainProcess] [31mERROR   [0m 2025-01-14 09:06:42 - SQLiteDataConverter.<module> - This DataConverter does not have output files set,and you must therefore specify argument `files`.[0m

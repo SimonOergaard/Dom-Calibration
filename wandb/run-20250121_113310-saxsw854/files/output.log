@@ -1,0 +1,29 @@
+Training on 10000 events and validating on 5000 events.
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 11:33:11 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250121-113311.log[0m
+/groups/icecube/simon/Icecube/src/lightning_fabric/plugins/environments/slurm.py:204: The `srun` command is available on your system but is not used. HINT: If your intention is to run Lightning on SLURM, prepend your python command with `srun` like so: srun python GNN_regression.py ...
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+Loading pre-trained model...
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 11:33:11 - StandardModel.<module> - Column names for predictions are:
+ ['position_x_pred', 'position_y_pred', 'position_z_pred'][0m
+GPU available: True (cuda), used: False
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+/groups/icecube/simon/Icecube/src/pytorch_lightning/trainer/setup.py:177: GPU available but not used. You can set it by doing `Trainer(accelerator='gpu')`.
+Predicting DataLoader 0: 100%|[32m██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████[0m| 10/10 [00:20<00:00,  0.49 batch(es)/s][0m
+/groups/icecube/simon/Icecube/src/pytorch_lightning/loggers/wandb.py:396: There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`.
+Traceback (most recent call last):
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 214, in <module>
+    main()
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 203, in main
+    true_positions = predictions[truth_labels].values
+                     ~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "/groups/icecube/simon/Icecube/src/pandas/core/indexes/base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index(['position_x', 'position_y', 'position_z'], dtype='object')] are in the [columns]"

@@ -1,0 +1,18 @@
+{"time":"2025-01-21T13:22:32.33224417+01:00","level":"INFO","msg":"using version","core version":"0.18.1"}
+{"time":"2025-01-21T13:22:32.332506874+01:00","level":"INFO","msg":"created symlink","path":"/lustre/hpc/icecube/simon/GNN/workspace/Scribts/wandb/run-20250121_132232-ksxv4k3w/logs/debug-core.log"}
+{"time":"2025-01-21T13:22:32.332854959+01:00","level":"INFO","msg":"using version","core version":"0.18.1"}
+{"time":"2025-01-21T13:22:32.332873119+01:00","level":"INFO","msg":"created symlink","path":"/lustre/hpc/icecube/simon/GNN/workspace/Scribts/wandb/run-20250121_132232-ksxv4k3w/logs/debug-core.log"}
+{"time":"2025-01-21T13:22:32.357303421+01:00","level":"INFO","msg":"created new stream","id":"ksxv4k3w"}
+{"time":"2025-01-21T13:22:32.357374112+01:00","level":"INFO","msg":"stream: started","id":"ksxv4k3w"}
+{"time":"2025-01-21T13:22:32.357438573+01:00","level":"INFO","msg":"handler: started","stream_id":{"value":"ksxv4k3w"}}
+{"time":"2025-01-21T13:22:32.357480363+01:00","level":"INFO","msg":"sender: started","stream_id":{"value":"ksxv4k3w"}}
+{"time":"2025-01-21T13:22:32.357456043+01:00","level":"INFO","msg":"writer: Do: started","stream_id":{"value":"ksxv4k3w"}}
+{"time":"2025-01-21T13:22:32.667098008+01:00","level":"INFO","msg":"wandb-core","!BADKEY":null}
+{"time":"2025-01-21T13:22:32.671674036+01:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-21T13:23:48.318341407+01:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-21T13:23:48.318688302+01:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-21T13:23:52.887146104+01:00","level":"INFO","msg":"stream: closing","id":"ksxv4k3w"}
+{"time":"2025-01-21T13:23:52.887184305+01:00","level":"INFO","msg":"handler: closed","stream_id":{"value":"ksxv4k3w"}}
+{"time":"2025-01-21T13:23:52.887213425+01:00","level":"INFO","msg":"writer: Close: closed","stream_id":{"value":"ksxv4k3w"}}
+{"time":"2025-01-21T13:23:52.887225055+01:00","level":"INFO","msg":"sender: closed","stream_id":{"value":"ksxv4k3w"}}
+{"time":"2025-01-21T13:23:52.88754302+01:00","level":"INFO","msg":"stream: closed","id":"ksxv4k3w"}

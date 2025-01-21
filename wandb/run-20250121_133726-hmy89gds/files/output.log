@@ -1,0 +1,30 @@
+Training on 100000 events and validating on 40000 events.
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 13:37:27 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250121-133727.log[0m
+/groups/icecube/simon/Icecube/src/lightning_fabric/plugins/environments/slurm.py:204: The `srun` command is available on your system but is not used. HINT: If your intention is to run Lightning on SLURM, prepend your python command with `srun` like so: srun python GNN_regression.py ...
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+Loading pre-trained model...
+/groups/icecube/simon/Icecube/src/pytorch_lightning/loggers/wandb.py:396: There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`.
+/groups/icecube/simon/Icecube/src/pytorch_lightning/callbacks/model_checkpoint.py:654: Checkpoint directory /lustre/hpc/icecube/simon/GNN/workspace/Models exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1]
+
+  | Name              | Type       | Params | Mode
+---------------------------------------------------------
+0 | _tasks            | ModuleList | 387    | train
+1 | _graph_definition | KNNGraph   | 0      | train
+2 | backbone          | DynEdge    | 1.4 M  | train
+---------------------------------------------------------
+1.4 M     Trainable params
+0         Non-trainable params
+1.4 M     Total params
+5.530     Total estimated model params size (MB)
+36        Modules in train mode
+0         Modules in eval mode
+Epoch 5:  61%|████████████████████████████████████████████████████████▎                                   | 120/196 [04:41<02:58,  0.43it/s, v_num=9gds, lr=0.001, val_loss=120.0, train_loss=119.0]
+                                                                                                                                                                                                    
+Metric val_loss improved. New best score: 123.818
+Metric val_loss improved by 2.425 >= min_delta = 0.0. New best score: 121.392
+Metric val_loss improved by 1.538 >= min_delta = 0.0. New best score: 119.854
+
+Detected KeyboardInterrupt, attempting graceful shutdown ...

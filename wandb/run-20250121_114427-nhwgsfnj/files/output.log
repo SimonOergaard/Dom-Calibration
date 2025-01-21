@@ -1,0 +1,51 @@
+Training on 10000 events and validating on 5000 events.
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 11:44:28 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250121-114428.log[0m
+Using device: cuda
+/groups/icecube/simon/Icecube/src/lightning_fabric/plugins/environments/slurm.py:204: The `srun` command is available on your system but is not used. HINT: If your intention is to run Lightning on SLURM, prepend your python command with `srun` like so: srun python GNN_regression.py ...
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+Loading pre-trained model...
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 11:44:28 - StandardModel.<module> - Column names for predictions are:
+ ['position_x_pred', 'position_y_pred', 'position_z_pred'][0m
+GPU available: True (cuda), used: False
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+/groups/icecube/simon/Icecube/src/pytorch_lightning/trainer/setup.py:177: GPU available but not used. You can set it by doing `Trainer(accelerator='gpu')`.
+Predicting DataLoader 0: 100%|[32m██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████[0m| 10/10 [00:20<00:00,  0.49 batch(es)/s][0m
+Traceback (most recent call last):
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 215, in <module>
+    main()
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 199, in main
+    predictions = model.predict_as_dataframe(val_loader)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/graphnet/src/graphnet/models/easy_model.py", line 375, in predict_as_dataframe
+    for batch in dataloader:
+  File "/groups/icecube/simon/Icecube/src/torch/utils/data/dataloader.py", line 631, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/torch/utils/data/dataloader.py", line 1329, in _next_data
+    idx, data = self._get_data()
+                ^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/torch/utils/data/dataloader.py", line 1295, in _get_data
+    success, data = self._try_get_data()
+                    ^^^^^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/torch/utils/data/dataloader.py", line 1133, in _try_get_data
+    data = self._data_queue.get(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cvmfs/icecube.opensciencegrid.org/py3-v4.3.0/RHEL_9_x86_64/lib/python3.11/multiprocessing/queues.py", line 113, in get
+    if not self._poll(timeout):
+           ^^^^^^^^^^^^^^^^^^^
+  File "/cvmfs/icecube.opensciencegrid.org/py3-v4.3.0/RHEL_9_x86_64/lib/python3.11/multiprocessing/connection.py", line 256, in poll
+    return self._poll(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/cvmfs/icecube.opensciencegrid.org/py3-v4.3.0/RHEL_9_x86_64/lib/python3.11/multiprocessing/connection.py", line 423, in _poll
+    r = wait([self], timeout)
+        ^^^^^^^^^^^^^^^^^^^^^
+  File "/cvmfs/icecube.opensciencegrid.org/py3-v4.3.0/RHEL_9_x86_64/lib/python3.11/multiprocessing/connection.py", line 930, in wait
+    ready = selector.select(timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cvmfs/icecube.opensciencegrid.org/py3-v4.3.0/RHEL_9_x86_64/lib/python3.11/selectors.py", line 415, in select
+    fd_event_list = self._selector.poll(timeout)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

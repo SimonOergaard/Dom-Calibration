@@ -1,0 +1,44 @@
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-20 15:26:40 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250120-152640.log[0m
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-20 16:23:59 - StandardModel.main - Training initiated with callbacks: EarlyStopping[0m
+[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-20 16:23:59 - StandardModel.<module> - No ModelCheckpoint found in callbacks. Best-fit model will not automatically be loaded after training![0m
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 1 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1]
+
+  | Name              | Type       | Params | Mode 
+---------------------------------------------------------
+0 | _tasks            | ModuleList | 387    | train
+1 | _graph_definition | KNNGraph   | 0      | train
+2 | backbone          | DynEdge    | 1.4 M  | train
+---------------------------------------------------------
+1.4 M     Trainable params
+0         Non-trainable params
+1.4 M     Total params
+5.530     Total estimated model params size (MB)
+36        Modules in train mode
+0         Modules in eval mode
+Metric val_loss improved. New best score: 193.393
+Metric val_loss improved by 20.547 >= min_delta = 0.0. New best score: 172.846
+Metric val_loss improved by 24.435 >= min_delta = 0.0. New best score: 148.411
+Metric val_loss improved by 11.769 >= min_delta = 0.0. New best score: 136.642
+Metric val_loss improved by 5.720 >= min_delta = 0.0. New best score: 130.923
+Metric val_loss improved by 0.930 >= min_delta = 0.0. New best score: 129.993
+Metric val_loss improved by 3.719 >= min_delta = 0.0. New best score: 126.274
+Metric val_loss improved by 0.921 >= min_delta = 0.0. New best score: 125.352
+Metric val_loss improved by 0.140 >= min_delta = 0.0. New best score: 125.213
+Metric val_loss improved by 0.376 >= min_delta = 0.0. New best score: 124.836
+Metric val_loss improved by 0.353 >= min_delta = 0.0. New best score: 124.483
+Metric val_loss improved by 0.775 >= min_delta = 0.0. New best score: 123.708
+Metric val_loss improved by 1.096 >= min_delta = 0.0. New best score: 122.612
+Monitored metric val_loss did not improve in the last 5 records. Best score: 122.612. Signaling Trainer to stop.
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 11:04:13 - StandardModel.<module> - Column names for predictions are: 
+ ['position_x_pred', 'position_y_pred', 'position_z_pred'][0m
+GPU available: True (cuda), used: False
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs

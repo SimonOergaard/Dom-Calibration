@@ -1,0 +1,59 @@
+Training on 10000 events and validating on 5000 events.
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 11:49:25 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250121-114925.log[0m
+Using device: cuda
+/groups/icecube/simon/Icecube/src/lightning_fabric/plugins/environments/slurm.py:204: The `srun` command is available on your system but is not used. HINT: If your intention is to run Lightning on SLURM, prepend your python command with `srun` like so: srun python GNN_regression.py ...
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+/groups/icecube/simon/Icecube/src/pytorch_lightning/loggers/wandb.py:396: There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1]
+
+  | Name              | Type       | Params | Mode
+---------------------------------------------------------
+0 | _tasks            | ModuleList | 387    | train
+1 | _graph_definition | KNNGraph   | 0      | train
+2 | backbone          | DynEdge    | 1.4 M  | train
+---------------------------------------------------------
+1.4 M     Trainable params
+0         Non-trainable params
+1.4 M     Total params
+5.530     Total estimated model params size (MB)
+36        Modules in train mode
+0         Modules in eval mode
+Epoch 21: 100%|█████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [01:23<00:00,  0.24it/s, v_num=5j40, lr=0.001, val_loss=123.0, train_loss=117.0]
+/groups/icecube/simon/Icecube/src/pytorch_lightning/loops/fit_loop.py:298: The number of training batches (20) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-21 12:20:50 - StandardModel.<module> - Column names for predictions are:                                                                
+Metric val_loss improved. New best score: 188.261
+Metric val_loss improved by 32.756 >= min_delta = 0.0. New best score: 155.505
+Metric val_loss improved by 14.798 >= min_delta = 0.0. New best score: 140.707
+Metric val_loss improved by 7.314 >= min_delta = 0.0. New best score: 133.393
+Metric val_loss improved by 2.306 >= min_delta = 0.0. New best score: 131.087
+Metric val_loss improved by 2.753 >= min_delta = 0.0. New best score: 128.334
+Metric val_loss improved by 0.560 >= min_delta = 0.0. New best score: 127.774
+Metric val_loss improved by 1.268 >= min_delta = 0.0. New best score: 126.507
+Metric val_loss improved by 2.139 >= min_delta = 0.0. New best score: 124.367
+Metric val_loss improved by 0.224 >= min_delta = 0.0. New best score: 124.143
+Metric val_loss improved by 0.490 >= min_delta = 0.0. New best score: 123.653
+Metric val_loss improved by 0.196 >= min_delta = 0.0. New best score: 123.457
+Metric val_loss improved by 0.662 >= min_delta = 0.0. New best score: 122.795
+Monitored metric val_loss did not improve in the last 5 records. Best score: 122.795. Signaling Trainer to stop.
+ ['position_x_pred', 'position_y_pred', 'position_z_pred'][0m
+GPU available: True (cuda), used: False
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+/groups/icecube/simon/Icecube/src/pytorch_lightning/trainer/setup.py:177: GPU available but not used. You can set it by doing `Trainer(accelerator='gpu')`.
+Predicting DataLoader 0: 100%|[32m██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████[0m| 10/10 [01:11<00:00,  0.14 batch(es)/s][0m
+Traceback (most recent call last):
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 215, in <module>
+    main()
+  File "/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py", line 204, in main
+    true_positions = predictions[truth_labels].values
+                     ~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/groups/icecube/simon/Icecube/src/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+  File "/groups/icecube/simon/Icecube/src/pandas/core/indexes/base.py", line 6249, in _raise_if_missing
+    raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+KeyError: "None of [Index(['position_x', 'position_y', 'position_z'], dtype='object')] are in the [columns]"

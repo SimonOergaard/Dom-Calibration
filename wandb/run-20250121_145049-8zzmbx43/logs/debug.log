@@ -1,0 +1,26 @@
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Current SDK version is 0.18.1
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Configure stats pid to 1366726
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Loading settings from /groups/icecube/simon/.config/wandb/settings
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Loading settings from /lustre/hpc/icecube/simon/GNN/workspace/Scribts/wandb/settings
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Loading settings from environment variables: {}
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Applying setup settings: {'mode': None, '_disable_service': None}
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Inferring run settings from compute environment: {'program_relpath': 'GNN_regression.py', 'program_abspath': '/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py', 'program': '/lustre/hpc/icecube/simon/GNN/workspace/Scribts/GNN_regression.py'}
+2025-01-21 14:50:49,696 INFO    MainThread:1366726 [wandb_setup.py:_flush():77] Applying login settings: {}
+2025-01-21 14:50:49,697 INFO    MainThread:1366726 [wandb_init.py:_log_setup():532] Logging user logs to /lustre/hpc/icecube/simon/GNN/workspace/Scribts/wandb/run-20250121_145049-8zzmbx43/logs/debug.log
+2025-01-21 14:50:49,697 INFO    MainThread:1366726 [wandb_init.py:_log_setup():533] Logging internal logs to /lustre/hpc/icecube/simon/GNN/workspace/Scribts/wandb/run-20250121_145049-8zzmbx43/logs/debug-internal.log
+2025-01-21 14:50:49,697 INFO    MainThread:1366726 [wandb_init.py:init():616] calling init triggers
+2025-01-21 14:50:49,697 INFO    MainThread:1366726 [wandb_init.py:init():623] wandb.init called with sweep_config: {}
+config: {}
+2025-01-21 14:50:49,697 INFO    MainThread:1366726 [wandb_init.py:init():666] starting backend
+2025-01-21 14:50:49,697 INFO    MainThread:1366726 [wandb_init.py:init():670] setting up manager
+2025-01-21 14:50:49,698 INFO    MainThread:1366726 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2025-01-21 14:50:49,703 INFO    MainThread:1366726 [wandb_init.py:init():678] backend started and connected
+2025-01-21 14:50:49,706 INFO    MainThread:1366726 [wandb_init.py:init():773] updated telemetry
+2025-01-21 14:50:49,714 INFO    MainThread:1366726 [wandb_init.py:init():806] communicating run to backend with 90.0 second timeout
+2025-01-21 14:50:49,978 INFO    MainThread:1366726 [wandb_init.py:init():857] starting run threads in backend
+2025-01-21 14:50:50,634 INFO    MainThread:1366726 [wandb_run.py:_console_start():2459] atexit reg
+2025-01-21 14:50:50,634 INFO    MainThread:1366726 [wandb_run.py:_redirect():2307] redirect: wrap_raw
+2025-01-21 14:50:50,634 INFO    MainThread:1366726 [wandb_run.py:_redirect():2372] Wrapping output streams.
+2025-01-21 14:50:50,634 INFO    MainThread:1366726 [wandb_run.py:_redirect():2397] Redirects installed.
+2025-01-21 14:50:50,642 INFO    MainThread:1366726 [wandb_init.py:init():900] run started, returning control to user process
+2025-01-21 14:51:29,283 WARNING MsgRouterThr:1366726 [router.py:message_loop():77] message_loop has been closed
