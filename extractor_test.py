@@ -1,6 +1,6 @@
 """Example of converting I3-files to SQLite and Parquet."""
 
-from glob import glob
+import glob, os
 import numpy as np
 from graphnet.constants import EXAMPLE_OUTPUT_DIR, TEST_DATA_DIR
 from graphnet.data.extractors.icecube import (
@@ -9,6 +9,7 @@ from graphnet.data.extractors.icecube import (
     I3RetroExtractor,
     I3TruthExtractor,
     I3PISAExtractor,
+    I3LineFitExtractor
 )
 from graphnet.data.dataconverter import DataConverter
 from graphnet.data.parquet import ParquetDataConverter
@@ -16,7 +17,7 @@ from graphnet.data.sqlite import SQLiteDataConverter
 from graphnet.utilities.argparse import ArgumentParser
 from graphnet.utilities.imports import has_icecube_package
 from graphnet.utilities.logging import Logger
-from icecube import icetray, dataclasses, simclasses
+from icecube import icetray, dataclasses, simclasses, StartingTrackVeto, recclasses
 
 ERROR_MESSAGE_MISSING_ICETRAY = (
     "This example requires IceTray to be installed, which doesn't seem to be "
@@ -66,19 +67,26 @@ def main_icecube_upgrade(backend: str) -> None:
     # Check(s)
     assert backend in CONVERTER_CLASS
 
-    inputs = "/groups/icecube/simon/GNN/workspace/data/I3_files/132028_part2/" #"/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
-    outdir =  "/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/"#"/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
+    inputs =  "/groups/icecube/simon/GNN/workspace/data/I3_files/132028_part2/"
+    outdir =  "/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/merged"#"/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
     gcd_rescue = (
-        "/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/GCD/GeoCalibDetectorStatus_ICUpgrade.v58.mixed.V1.i3.bz2"
+        "/groups/icecube/simon/GNN/workspace/data/GCD_files/GeoCalibDetectorStatus_ICUpgrade.v58.mixed.V1.i3.bz2"
     )
-    workers = 8
-
+    workers = 20
     converter: DataConverter = CONVERTER_CLASS[backend](
-        extractors=[
+        extractors=[    
             I3TruthExtractor(),
-            I3PISAExtractor('I3MMCTrackList'),
+            #I3PISAExtractor('I3MMCTrackList'),
             #I3RetroExtractor(),
-            I3FeatureExtractorIceCubeUpgrade("SplitInIcePulsesSRT"),
+            #I3FeatureExtractorIceCubeUpgrade("SplitInIcePulsesSRT"),
+            I3FeatureExtractorIceCubeUpgrade("SplitInIcePulses"),
+            # I3LineFitExtractor(
+            #     name="linefit_finitereco_ic",
+            #     inputs = inputs_folder,
+            #     input_pulses="SplitInIcePulsesSRT",
+            #     linefitKey="linefit_improved",
+            #     gcd_rescue= gcd_rescue
+            # ),
             #I3ParticleExtractor("I3MCTree"),
             #I3FeatureExtractorIceCube86("SplitInIcePulsesSRT"),
             #I3FeatureExtractorIceCubeUpgrade("I3MCTree"),

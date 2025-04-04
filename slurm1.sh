@@ -7,17 +7,16 @@
 #SBATCH --ntasks=1                       # Single task
 #SBATCH --mail-type=END,FAIL             # Mail events
 #SBATCH --mail-user=jxt726@alumni.ku.dk  # Email for notifications
-#SBATCH --cpus-per-task=12               # Number of CPU cores per task
+#SBATCH --cpus-per-task=8               # Number of CPU cores per task
 #SBATCH --nodes=1                        # Request one node
-#SBATCH --time=08:30:00                  # Time limit
+#SBATCH --time=14:30:00                  # Time limit
 #SBATCH --mem=120G                        # Memory request
 
 # Activate your environment
-#export PATH=$HOME/ffmpeg/bin:$PATH
 source ~/Icecube/bin/activate   # Adjust to the correct path of your environment
+
 # Run the Python script
+#python Ride_new_new.py
 #python Burn_sample_check.py
-#python data_sorter.py
+#python linefit_i3_writer.py
 python String_no_bin.py
-#python line_fit.py
-#python extractor_test.py sqlite icecube-upgrade

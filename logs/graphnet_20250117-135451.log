@@ -1,5 +1,0 @@
-[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-17 13:54:51 - I3TruthExtractor.__init__ - Writing log to [1mlogs/graphnet_20250117-135451.log[0m
-[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-17 13:54:51 - SQLiteDataConverter.<module> - SQLiteDataConverter will be deprecated in GraphNeT 2.0. Please use I3ToSQLiteConverter instead.[0m
-[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-17 13:54:51 - SQLiteDataConverter.__call__ - Starting pool of 8 workers to process 100 file(s)[0m
-[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-17 14:11:35 - SQLiteDataConverter.<module> - Merging files to /groups/icecube/simon/GNN/workspace/data/Converted_I3_file/merged[0m
-[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-17 14:11:35 - SQLiteWriter.main_icecube_upgrade - Merging 100 database files[0m

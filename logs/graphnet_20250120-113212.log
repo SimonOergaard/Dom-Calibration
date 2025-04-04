@@ -1,2 +1,0 @@
-[1;34mgraphnet[0m [MainProcess] [32mINFO    [0m 2025-01-20 11:32:12 - IceCubeUpgrade.__init__ - Writing log to [1mlogs/graphnet_20250120-113212.log[0m
-[1;34mgraphnet[0m [MainProcess] [33mWARNING [0m 2025-01-20 11:32:24 - StandardModel.main - DeprecationWarning: Argument `gnn` will be deprecated in GraphNeT 2.0. Please use `backbone` instead.[0m
