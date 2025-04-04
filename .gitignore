@@ -1,0 +1,7 @@
+wandb/*
+logs/*
+lightning_logs/*
+filtered_all_big_data.db
+filtered_all_no_cuts.db
+filtered_all_sub.db
+filtered_all.db
