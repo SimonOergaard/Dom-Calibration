@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=String  # Job name
+#SBATCH --job-name=RIDE  # Job name
 #SBATCH --output=/groups/icecube/simon/GNN/workspace/ppc_log/ppc_%j.out              # Standard output
 #SBATCH --error=/groups/icecube/simon/GNN/workspace/ppc_log/ppc_%j.err         
 #SBATCH --partition=icecube              # Use GPU partition
@@ -18,6 +18,8 @@ source ~/Icecube/bin/activate   # Adjust to the correct path of your environment
 # Run the Python script
 #python Burn_sample_check.py
 #python data_sorter.py
-python String_no_bin.py
+#python String_no_bin.py
 #python line_fit.py
-#python extractor_test.py sqlite icecube-upgrade
+#python Ride_new_new.py
+#python Ride_analysis.py
+python RIDE_v3.py

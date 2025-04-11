@@ -596,7 +596,6 @@ def plot_histogram_monitored_expected(aggregated_metrics_79, aggregated_metrics_
         plt.savefig(f"{output_dir}/RIDE_histogram_rde_2Nearest_10_110_{rde_value}_no_SRT.png")
         plt.close()
 
-
 def plot_histogram_monitored_above_0(aggregated_metrics_79, aggregated_metrics_80, aggregated_metrics_84, output_dir):
     """
     Generate histogram of total charge relative to the DOM on string 80 in the same layer.

@@ -42,24 +42,25 @@ def main_icecube86(backend: str) -> None:
     # Check(s)
     assert backend in CONVERTER_CLASS
 
-    inputs = "/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
-    outdir = "/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/"
+    inputs = "/groups/icecube/simon/GNN/workspace/data/I3_files/2020_Run00134755_level_2/Run00134755/"
+    outdir = "/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/merged"
     gcd_rescue = (
-        "/lustre/hpc/project/icecube/MuonGun_upgrade_full_detector_generation_volume_no_kde/130028/GCD/GeoCalibDetectorStatus_ICUpgrade.v58.mixed.V1.i3.bz2"
+        "/groups/icecube/simon/GNN/workspace/data/GCD_files/Level2_IC86.2020_data_Run00134755_1202_79_562_GCD.i3.zst"
     )
 
-    converter = CONVERTER_CLASS[backend](
+    workers = 20
+    converter: DataConverter = CONVERTER_CLASS[backend](
         extractors=[
-            #I3FeatureExtractorIceCube86("SRTInIcePulses"),
+            I3FeatureExtractorIceCube86("SRTInIcePulses"),
             I3TruthExtractor(),
         ],
         outdir=outdir,
+        workers=workers,
         gcd_rescue=gcd_rescue,
-        workers=1,
     )
-    converter(inputs)
+    converted_files = converter(inputs)
     if backend == "sqlite":
-        converter.merge_files()
+        converter.merge_files(converted_files)
 
 
 def main_icecube_upgrade(backend: str) -> None:
@@ -79,7 +80,7 @@ def main_icecube_upgrade(backend: str) -> None:
             #I3PISAExtractor('I3MMCTrackList'),
             #I3RetroExtractor(),
             #I3FeatureExtractorIceCubeUpgrade("SplitInIcePulsesSRT"),
-            I3FeatureExtractorIceCubeUpgrade("SplitInIcePulses"),
+            I3FeatureExtractorIceCubeUpgrade("SRTInIcePulses"),
             # I3LineFitExtractor(
             #     name="linefit_finitereco_ic",
             #     inputs = inputs_folder,

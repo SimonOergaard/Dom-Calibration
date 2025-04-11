@@ -525,7 +525,7 @@ def plot_double_charge_ratio(file_path_MC, file_path_RD, output_dir, string_a, s
 def main():
     file_path_Raw = "/groups/icecube/ptzatzag/work/workspace/Merged_pulses/Unmergedpulsemap_RD_.db"
     #file_path = "/groups/icecube/ptzatzag/work/workspace/Merged_pulses/StoppedMuons/DB/60k_MergedPulsemap_RD_Final.db"
-    #file_path = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db"
+    #file_path_SRT = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db"
     file_path = '/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/filtered_all_non_clean.db'
     #file_path = "/groups/icecube/petersen/GraphNetDatabaseRepository/dev_lvl3_genie_burnsample/dev_lvl3_genie_burnsample_v5.db"
     con = sqlite3.connect(file_path)

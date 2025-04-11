@@ -10,7 +10,6 @@ import matplotlib.colors as colors
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from line_profiler import LineProfiler
 import yappi
-
 def profile_code():
     """Runs the script with profiling enabled."""
 
@@ -83,6 +82,91 @@ def calculate_minimum_distance_to_track(pos_array, true_x, true_y, true_z,
     closest_points = stop_point + clamped_projections[:, np.newaxis] * direction_vector
     return np.linalg.norm(pos_array[:, :3]  - closest_points, axis=1)
 
+# def compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pulses_df, pos_array):
+#     """
+#     For a fixed lower bound (e.g. 10) and a set of upper bounds (e.g. 20,30,...,160),
+#     process events only once and update, for each upper bound, per dom_number:
+#       - expected_hits: count of events where the DOM qualifies (its minimum distance is in [lower, upper))
+#       - total_charge: summed pulse charge (using a preprocessed lookup from pulses_df)
+#     For each upper bound, compute RIDE = total_charge / expected_hits for each dom_number on string 79 and 80,
+#     and then compute the ratio:
+#          ratio = (RIDE on string 79) / (RIDE on string 80)
+#          (for each dom_number that exists on both strings).
+         
+#     Returns:
+#       A dictionary mapping each upper bound to a ratio dictionary:
+#          {upper_bound: {dom_number: ratio, ...}, ...}
+#     """
+#     # Preprocess pulses into a dictionary keyed by event_no.
+#     pulses_np = pulses_df.to_numpy()
+#     pulse_event_col = pulses_df.columns.get_loc("event_no")
+#     event_map = preprocess_pulses(pulses_np, pulse_event_col)
+    
+#     # Column indices for pulse DataFrame lookups.
+#     col_string = pulses_df.columns.get_loc("string")
+#     col_dom_number = pulses_df.columns.get_loc("dom_number")
+#     col_charge = pulses_df.columns.get_loc("charge")
+    
+#     # For pos_array, extract the string IDs and dom_numbers.
+#     pos_strings = pos_array[:, 3].astype(int)  # e.g. 79 or 80
+#     pos_dom_numbers = pos_array[:, 4].astype(int)
+    
+#     # Initialize accumulators for each upper bound.
+#     # Each entry will have separate dictionaries for string 79 and 80:
+#     #   "hits_79", "chg_79", "hits_80", "chg_80"
+#     accum = {}
+#     for ub in upper_bounds:
+#         accum[ub] = {"hits_79": {}, "chg_79": {}, "hits_80": {}, "chg_80": {}}
+    
+#     # Process events from each chunk.
+#     for chunk in event_chunks:
+#         for event in chunk.itertuples(index=False):
+#             event_no = event.event_no
+#             # Compute min distances for all DOMs for this event.
+#             min_dists = calculate_minimum_distance_to_track(
+#                 pos_array,
+#                 event.position_x, event.position_y, event.position_z,
+#                 event.zenith, event.azimuth, event.track_length
+#             )
+#             # Build a lookup for pulses in this event keyed by (string, dom_number).
+#             pulse_dict = {}
+#             if event_no in event_map:
+#                 for row in event_map[event_no]:
+#                     key = (int(row[col_string]), int(row[col_dom_number]))
+#                     pulse_dict[key] = pulse_dict.get(key, 0) + row[col_charge]
+            
+#             # For each upper bound, update accumulators.
+#             for ub in upper_bounds:
+#                 # Compute mask for DOMs with min distance in [distance_lower, ub)
+#                 mask = (min_dists >= distance_lower) & (min_dists < ub)
+#                 for i, valid in enumerate(mask):
+#                     if valid:
+#                         dom_num = pos_dom_numbers[i]
+#                         s_id = pos_strings[i]
+#                         if s_id == 79:
+#                             accum[ub]["hits_79"][dom_num] = accum[ub]["hits_79"].get(dom_num, 0) + 1
+#                             accum[ub]["chg_79"][dom_num] = accum[ub]["chg_79"].get(dom_num, 0) + pulse_dict.get((79, dom_num), 0)
+#                         elif s_id == 80:
+#                             accum[ub]["hits_80"][dom_num] = accum[ub]["hits_80"].get(dom_num, 0) + 1
+#                             accum[ub]["chg_80"][dom_num] = accum[ub]["chg_80"].get(dom_num, 0) + pulse_dict.get((80, dom_num), 0)
+    
+#     # For each upper bound, compute the ratio for each dom_number.
+#     ratio_all = {}
+#     for ub in upper_bounds:
+#         ratio_dict = {}
+#         hits79 = accum[ub]["hits_79"]
+#         chg79 = accum[ub]["chg_79"]
+#         hits80 = accum[ub]["hits_80"]
+#         chg80 = accum[ub]["chg_80"]
+#         # Compute ratios only for dom_numbers that appear in both strings.
+#         common_doms = set(hits79.keys()) & set(hits80.keys())
+#         for dom in common_doms:
+#             ride79 = chg79.get(dom, 0) / hits79[dom] if hits79[dom] > 0 else 0
+#             ride80 = chg80.get(dom, 0) / hits80[dom] if hits80[dom] > 0 else 0
+#             ratio_dict[dom] = ride79 / ride80 if ride80 > 0 else 0
+#         ratio_all[ub] = ratio_dict
+#     return ratio_all
+
 
 def process_event_chunk(chunk, pulses_df_np, pos_array, pulse_event_col, col_string, col_dom_number, col_charge,
                         distance_lower, upper_bounds):
@@ -116,21 +200,18 @@ def process_event_chunk(chunk, pulses_df_np, pos_array, pulse_event_col, col_str
                 if valid:
                     dom_num = pos_dom_numbers[i]
                     s_id = pos_strings[i]
-                    if s_id == 80:
+                    if s_id == 84:
+                        accum[ub]["hits_79"][dom_num] = accum[ub]["hits_79"].get(dom_num, 0) + 1
+                        accum[ub]["chg_79"][dom_num] = accum[ub]["chg_79"].get(dom_num, 0) + pulse_dict.get((84, dom_num), 0)
+                    elif s_id == 80:
                         accum[ub]["hits_80"][dom_num] = accum[ub]["hits_80"].get(dom_num, 0) + 1
                         accum[ub]["chg_80"][dom_num] = accum[ub]["chg_80"].get(dom_num, 0) + pulse_dict.get((80, dom_num), 0)
-                    else:
-                        key = f"{s_id}-{dom_num}"
-                        accum[ub]["hits_79"][key] = accum[ub]["hits_79"].get(key, 0) + 1
-                        accum[ub]["chg_79"][key] = accum[ub]["chg_79"].get(key, 0) + pulse_dict.get((s_id, dom_num), 0)
-
     return accum
-
-
 
 
 def process_event_chunk_wrapper(args):
     return process_event_chunk(*args)
+
 
 def compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pulses_df, pos_array):
     """
@@ -140,7 +221,6 @@ def compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pul
     pulse_event_col = pulses_df.columns.get_loc("event_no")
     col_string = pulses_df.columns.get_loc("string")
     col_dom_number = pulses_df.columns.get_loc("dom_number")
-    #col_dom_time = pulses_df.columns.get_loc("dom_time")
     col_charge = pulses_df.columns.get_loc("charge")
 
     merged_accum = {ub: {"hits_79": {}, "chg_79": {}, "hits_80": {}, "chg_80": {}} for ub in upper_bounds}
@@ -163,23 +243,15 @@ def compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pul
     ratio_all = {}
     for ub in upper_bounds:
         ratio_dict = {}
-        hits_other = merged_accum[ub]["hits_79"]
-        chg_other = merged_accum[ub]["chg_79"]
+        hits79 = merged_accum[ub]["hits_79"]
+        chg79 = merged_accum[ub]["chg_79"]
         hits80 = merged_accum[ub]["hits_80"]
         chg80 = merged_accum[ub]["chg_80"]
-      #  common_doms = set(hits79.keys()) & set(hits80.keys())
-        for dom_key in hits_other:
-            try:
-                string_id, dom_number = dom_key.split('-')
-                dom_number = int(dom_number)
-
-                ride_other = chg_other[dom_key] / hits_other[dom_key] if hits_other[dom_key] > 0 else 0
-                ride_80 = chg80.get(dom_number, 0) / hits80.get(dom_number, 1) if hits80.get(dom_number, 0) > 0 else 0
-
-                ratio_dict[dom_key] = ride_other / ride_80 if ride_80 > 0 else 0
-            except Exception as e:
-                print(f"[Warning] Could not compute ratio for {dom_key}: {e}")
-
+        common_doms = set(hits79.keys()) & set(hits80.keys())
+        for dom in common_doms:
+            ride79 = chg79.get(dom, 0) / hits79[dom] if hits79[dom] > 0 else 0
+            ride80 = chg80.get(dom, 0) / hits80[dom] if hits80[dom] > 0 else 0
+            ratio_dict[dom] = ride79 / ride80 if ride80 > 0 else 0
         ratio_all[ub] = ratio_dict
     return ratio_all
 
@@ -197,41 +269,30 @@ def plot_dom_ratio_heatmap(ratio_results, output_dir):
     upper_bounds = sorted(ratio_results.keys())
     
     # For the y-axis, get the union of all dom_numbers (assuming these come from string 79).
-    #all_doms = sorted(set().union(*(ratio_results[ub].keys() for ub in upper_bounds)))
-    all_combined_doms = set().union(*(ratio_results[ub].keys() for ub in upper_bounds))
-
-    # Sort them numerically by dom_number
-    def get_dom_number(dom_key):
-        return int(dom_key.split("-")[1])
-
-    sorted_doms = sorted(all_combined_doms, key=lambda x: (int(x.split('-')[1]), int(x.split('-')[0])))
-
-
+    all_doms = sorted(set().union(*(ratio_results[ub].keys() for ub in upper_bounds)))
+    
     # Build a 2D matrix with rows = DOM numbers and columns = upper bounds.
-    data_matrix = np.full((len(all_combined_doms), len(upper_bounds)), np.nan)
+    data_matrix = np.full((len(all_doms), len(upper_bounds)), np.nan)
     for j, ub in enumerate(upper_bounds):
-        for i, key in enumerate(all_combined_doms):
-            if key in ratio_results[ub]:
-                data_matrix[i, j] = ratio_results[ub][key]
-
+        for i, dom in enumerate(all_doms):
+            if dom in ratio_results[ub]:
+                data_matrix[i, j] = ratio_results[ub][dom]
     norm = colors.TwoSlopeNorm(vmin=0.9, vcenter=1.35, vmax=1.5)
     # Create the heatmap.
     plt.figure(figsize=(14, 10))
     im = plt.imshow(data_matrix, aspect='auto', origin='lower', cmap='bwr', norm=norm)
-    plt.colorbar(im, label="RIDE Value")
-    plt.xlabel("Distance Upper Bound (m)")
-    plt.ylabel("DOM (string-dom_number)")
-    plt.title("RIDE of (String X) to (String 80) — DOMs < 11")
-
-        
-    plt.xticks(np.arange(len(upper_bounds)), upper_bounds)
-    plt.yticks(np.arange(len(sorted_doms)), sorted_doms)
-
-        
-    os.makedirs(output_dir, exist_ok=True)
-    plt.savefig(os.path.join(output_dir, "dom_ratio_heatmap_deepcore_84_new.png"), dpi=300)
-    plt.close()
+    plt.colorbar(im, label="Ratio (RIDE84 / RIDE80)")
+    plt.xlabel("Upper Bound")
+    plt.ylabel("DOM Number (String 84)")
+    plt.title("Heatmap of DOM Ratios (RIDE String 84 / RIDE String 80)")
     
+    # Set ticks.
+    plt.xticks(np.arange(len(upper_bounds)), upper_bounds)
+    plt.yticks(np.arange(len(all_doms)), all_doms)
+    
+    os.makedirs(output_dir, exist_ok=True)
+    plt.savefig(os.path.join(output_dir, "dom_ratio_heatmap_84_new.png"), dpi=300)
+    plt.close()
     
 def main():
     # Load data from the filtered DB.
@@ -239,29 +300,26 @@ def main():
     con = sqlite3.connect(file_path)
     df_truth = pd.read_sql_query("SELECT * FROM truth", con)
     pulses_df = pd.read_sql_query(
-        "SELECT dom_x, dom_y, dom_z, charge, event_no, string, dom_time, rde, dom_number FROM SplitInIcePulsesSRT",
+        "SELECT dom_x, dom_y, dom_z, charge, event_no, string, rde, dom_number FROM SplitInIcePulsesSRT",
         con
     )
     con.close()
     
     # Restrict pulses to strings 79 and 80.
+    pulses_df = pulses_df[pulses_df['string'].isin([84,80])]
     # pulses_df = pulses_df[
-    # pulses_df['string'].isin([80, 81, 82, 83, 84, 85]) & 
-    # (pulses_df['dom_number'] < 11)
+    # ((pulses_df['string'] == 84)) |
+    # ((pulses_df['string'] == 80) & (pulses_df['rde'] == 1.0))
     # ]
-    pulses_df = pulses_df[
-    ((pulses_df['string'] == 84)) |
-    ((pulses_df['string'] == 80) & (pulses_df['rde'] == 1.0))
-    ]
 
     # # Find dom_numbers present in filtered string 80
-    doms_in_80 = set(pulses_df[pulses_df['string'] == 80]['dom_number'].unique())
+    # doms_in_80 = set(pulses_df[pulses_df['string'] == 80]['dom_number'].unique())
 
     # # Keep only DOMs from string 84 that also exist in string 80
-    pulses_df = pulses_df[~(
-        (pulses_df['string'] == 84) & 
-        (~pulses_df['dom_number'].isin(doms_in_80))
-    )]
+    # pulses_df = pulses_df[~(
+    #     (pulses_df['string'] == 84) & 
+    #     (~pulses_df['dom_number'].isin(doms_in_80))
+    # )]
     # Use all unique DOMs (so monitor from string 80 is available).
     pos_array = pulses_df[['dom_x','dom_y','dom_z','string','dom_number']].drop_duplicates().to_numpy()
     
@@ -274,6 +332,7 @@ def main():
     # Compute the per-DOM ratios for all distance ranges.
     ratio_results = compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pulses_df, pos_array)
     plot_dom_ratio_heatmap(ratio_results, output_dir)
+    
     # Print results for each upper bound.
     for ub in sorted(ratio_results.keys()):
         print(f"Distance range: {distance_lower} to {ub}")
