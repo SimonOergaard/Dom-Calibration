@@ -69,7 +69,7 @@ def main(
 
     db_path = input_path
     connection = sqlite3.connect(db_path)
-    event_numbers = pd.read_sql("SELECT DISTINCT event_no FROM truth", connection)
+    event_numbers = pd.read_sql("SELECT DISTINCT event_no FROM SRTInIcePulses", connection)
     val_events = event_numbers.sample(frac=0.5, random_state=42).reset_index(drop=True)
     val_events = val_events['event_no'].ravel().tolist()
     print(f"Length of val_events: {len(val_events)}")
@@ -79,7 +79,7 @@ def main(
     # Configuration
     config = {
         "db": input_path,
-        "pulsemap": "SplitInIcePulses",
+        "pulsemap": "SRTInIcePulses",
         "batch_size": 512,
         #"num_workers": 10, #Think this is 15 in training
         "num_workers": 15,
@@ -131,7 +131,7 @@ def main(
         pulsemaps = config["pulsemap"],
         features = features,
         truth = truth,
-        selection = MC_selection,
+        selection = val_events,
         batch_size=config["batch_size"],
         shuffle=False,
         num_workers=config["num_workers"],

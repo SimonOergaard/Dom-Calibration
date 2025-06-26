@@ -87,12 +87,12 @@ def preprocess_truth_table(db_path, truth_table):
     df_truth = pd.read_sql(f"SELECT * FROM {truth_table};", connection)
 
     # Always overwrite start positions
-    print("Calculating start positions...")
-    start_points = df_truth.apply(calculate_start_point, axis=1)
-    df_truth[["start_position_x", "start_position_y", "start_position_z"]] = pd.DataFrame(
-        start_points.tolist(), index=df_truth.index
-    )
-    print("Start positions updated successfully.")
+    # print("Calculating start positions...")
+    # start_points = df_truth.apply(calculate_start_point, axis=1)
+    # df_truth[["start_position_x", "start_position_y", "start_position_z"]] = pd.DataFrame(
+    #     start_points.tolist(), index=df_truth.index
+    # )
+    # print("Start positions updated successfully.")
 
     # Always overwrite normalised positions
     print("Calculating normalised positions...")
@@ -102,12 +102,12 @@ def preprocess_truth_table(db_path, truth_table):
     print("Normalised positions updated successfully.")
 
     # Always overwrite direction vectors
-    print("Calculating direction vectors...")
-    directions = df_truth.apply(calculate_direction, axis=1)
-    df_truth[["direction_x", "direction_y", "direction_z"]] = pd.DataFrame(
-        directions.tolist(), index=df_truth.index
-    )
-    print("Direction vectors updated successfully.")
+    # print("Calculating direction vectors...")
+    # directions = df_truth.apply(calculate_direction, axis=1)
+    # df_truth[["direction_x", "direction_y", "direction_z"]] = pd.DataFrame(
+    #     directions.tolist(), index=df_truth.index
+    # )
+    # print("Direction vectors updated successfully.")
 
     # Replace the table in the database with the updated DataFrame
     df_truth.to_sql(truth_table, connection, if_exists="replace", index=False)
@@ -227,7 +227,7 @@ def plot_stopping_predictions(true_positions, predicted_positions, output_dir):
         plt.title(f"Predicted vs True {label.upper()} Stopping Position")
         plt.legend()
         plt.grid()
-        plt.savefig(os.path.join(output_dir, f"Euclidian_heatmap_pred_vs_true_stopping_{label}.png"))
+        plt.savefig(os.path.join(output_dir, f"Euclidian_heatmap_pred_vs_true_stopping_{label}_1.png"))
         plt.close()
 
 
@@ -584,7 +584,28 @@ def plot_good_versus_bad_predictions(
     print(f"Saved pulses distribution plot to: {plot_path}")
     
 
-    
+def copy_table_in_chunks(table, conn_in, conn_out, chunk_size=500_000, modify_fn=None):
+    """
+    Stream a large table from conn_in to conn_out in chunks.
+    Optionally modifies the DataFrame using modify_fn(df_chunk) before writing.
+    """
+    offset = 0
+    first_chunk = True
+    while True:
+        query = f"SELECT * FROM {table} LIMIT {chunk_size} OFFSET {offset};"
+        df_chunk = pd.read_sql(query, conn_in)
+        if df_chunk.empty:
+            break
+
+        if modify_fn:
+            df_chunk = modify_fn(df_chunk)
+
+        df_chunk.to_sql(
+            table, conn_out, index=False, if_exists="replace" if first_chunk else "append"
+        )
+        offset += chunk_size
+        first_chunk = False
+
 
 def main():
     args = parse_arguments()
@@ -599,8 +620,8 @@ def main():
     #best_model_path = "/groups/icecube/simon/GNN/workspace/Models/best_model-v23.ckpt" # For angles
     train_model_path = "/groups/icecube/simon/GNN/workspace/Models/model_state.pth" 
     #best_model_path = "/groups/icecube/simon/GNN/workspace/Models/best_model-v27.ckpt" # Euclidian_distance
-    #best_model_path = "/groups/icecube/simon/GNN/workspace/Models/best_model-v31.ckpt" # Kappa_weigthed mean squared error.  
-    best_model_path = "/groups/icecube/simon/GNN/workspace/Models/best_model-v32.ckpt"
+    best_model_path = "/groups/icecube/simon/GNN/workspace/Models/best_model-v31.ckpt" # Kappa_weigthed mean squared error.  
+    #best_model_path = "/groups/icecube/simon/GNN/workspace/Models/best_model-v32.ckpt"
     #ensure_index_on_event_no(db_path)
     #preprocess_truth_table(db_path, truth_table)
     
@@ -616,7 +637,6 @@ def main():
     threshold = 30.0
     
     with sqlite3.connect(db_path) as conn:
-        # Each row in `pulsemaps` is presumably one pulse. Count them per event_no.
         df_pulses = pd.read_sql(f"""
             SELECT event_no, COUNT(*) AS n_pulses
             FROM {pulsemap}
@@ -646,8 +666,8 @@ def main():
     
     features = ["dom_x", "dom_y", "dom_z", "charge", "dom_time", "rde", "pmt_area","pmt_dir_x", "pmt_dir_y", "pmt_dir_z","hlc","string","pmt_number","dom_number","dom_type"]
     truth_labels = [
-        "zenith", "azimuth",  # Direction
-       # "normalised_position_x", "normalised_position_y", "normalised_position_z",  # Stopping positions
+       # "zenith", "azimuth",  # Direction
+        "normalised_position_x", "normalised_position_y", "normalised_position_z",  # Stopping positions
     ]
 
     
@@ -695,15 +715,10 @@ def main():
         target_labels=["normalised_position_x", "normalised_position_y", "normalised_position_z"],
         loss_function=EuclideanDistanceLoss(),    
     )
-    #for i in range(20):
-   #     print(val_dataset[i])
-    #for i in range(20):
-    #    print(val_loader.dataset[i])
-        
     model = StandardModel(
         graph_definition=graph_definition,
         backbone=gnn,
-        tasks=[direction_task],#, direction_task, stop_task
+        tasks=[stop_task],#, direction_task, stop_task
         optimizer_class=Adam,
         optimizer_kwargs={"lr": 1e-03, "eps": 1e-03},
         scheduler_class=OneCycleLR, 
@@ -746,36 +761,37 @@ def main():
 
         predictions = model.predict_as_dataframe(
             val_loader,
+            gpus = 1,
             prediction_columns=[
-                "zenith_pred", "azimuth_pred","zenith_kappa", "azimuth_kappa",
-                # "stop_position_x_pred", "stop_position_y_pred", "stop_position_z_pred",
-                # "x_pred_kappa", "y_pred_kappa", "z_pred_kappa",
+               # "zenith_pred", "azimuth_pred","zenith_kappa", "azimuth_kappa",
+                 "stop_position_x_pred", "stop_position_y_pred", "stop_position_z_pred",
+                 "x_pred_kappa", "y_pred_kappa", "z_pred_kappa",
                
             ],
             additional_attributes=[
                 "event_no",
               #  "n_pulses",
-               "zenith", "azimuth",
-                # "normalised_position_x", "normalised_position_y", "normalised_position_z",
+              # "zenith", "azimuth",
+                 "normalised_position_x", "normalised_position_y", "normalised_position_z",
             ],
         )
 
-        pred_zenith,pred_azimuth = predictions["zenith_pred"].values, predictions["azimuth_pred"].values
-        true_zenith,true_azimuth = predictions["zenith"].values, predictions["azimuth"].values
-        zenith_sigma, azimuth_sigma = predictions["zenith_kappa"].values, predictions["azimuth_kappa"].values
-        # predictions["position_x_pred_scaled"] = predictions["stop_position_x_pred"] * 500.0
-        # predictions["position_y_pred_scaled"] = predictions["stop_position_y_pred"] * 500.0
-        # predictions["position_z_pred_scaled"] = predictions["stop_position_z_pred"] * 500.0
+        #pred_zenith,pred_azimuth = predictions["zenith_pred"].values, predictions["azimuth_pred"].values
+        #true_zenith,true_azimuth = predictions["zenith"].values, predictions["azimuth"].values
+        #zenith_sigma, azimuth_sigma = predictions["zenith_kappa"].values, predictions["azimuth_kappa"].values
+        predictions["position_x_pred_scaled"] = predictions["stop_position_x_pred"] * 500.0
+        predictions["position_y_pred_scaled"] = predictions["stop_position_y_pred"] * 500.0
+        predictions["position_z_pred_scaled"] = predictions["stop_position_z_pred"] * 500.0
         
-        # predictions["position_x_true_scaled"] = predictions["normalised_position_x"] * 500.0
-        # predictions["position_y_true_scaled"] = predictions["normalised_position_y"] * 500.0
-        # predictions["position_z_true_scaled"] = predictions["normalised_position_z"] * 500.0
+        predictions["position_x_true_scaled"] = predictions["normalised_position_x"] * 500.0
+        predictions["position_y_true_scaled"] = predictions["normalised_position_y"] * 500.0
+        predictions["position_z_true_scaled"] = predictions["normalised_position_z"] * 500.0
         
-        # #Extract true and predicted values for stopping points
-        # true_stopping = predictions[["position_x_true_scaled", "position_y_true_scaled", "position_z_true_scaled"]].values
-        # pred_stopping = predictions[["position_x_pred_scaled", "position_y_pred_scaled", "position_z_pred_scaled"]].values
-        # #Print a sample of pred_stopping
-        # print(f'pred_stopping: {pred_stopping[:10]}')
+        #Extract true and predicted values for stopping points
+        true_stopping = predictions[["position_x_true_scaled", "position_y_true_scaled", "position_z_true_scaled"]].values
+        pred_stopping = predictions[["position_x_pred_scaled", "position_y_pred_scaled", "position_z_pred_scaled"]].values
+        #Print a sample of pred_stopping
+        print(f'pred_stopping: {pred_stopping[:10]}')
 
         
         # df_merged = merge_pulses_with_predictions(val_dataset, predictions)
@@ -785,7 +801,7 @@ def main():
         # arr_n_pulses = df_merged["n_pulses"].values
         
         # # Plot stopping points
-        #plot_stopping_predictions(true_stopping, pred_stopping, output_dir)
+        plot_stopping_predictions(true_stopping, pred_stopping, output_dir)
         # plot_good_versus_bad_predictions(
         #     event_no=arr_event_no,
         #     true_z=arr_true_z,
@@ -800,16 +816,16 @@ def main():
         #     pred_zenith, pred_azimuth, true_zenith, true_azimuth, zenith_sigma, azimuth_sigma, output_dir
         # )
         
-        plot_hexbin(true_zenith, pred_zenith, "Zenith", output_dir)
-        plot_hexbin(true_azimuth, pred_azimuth, "Azimuth", output_dir)
+        #plot_hexbin(true_zenith, pred_zenith, "Zenith", output_dir)
+        #plot_hexbin(true_azimuth, pred_azimuth, "Azimuth", output_dir)
 
         
         # # #print the mean opening angle
-        true_vectors = np.array([np.sin(true_zenith) * np.cos(true_azimuth), np.sin(true_zenith) * np.sin(true_azimuth), np.cos(true_zenith)]).T
-        pred_vectors = np.array([np.sin(pred_zenith) * np.cos(pred_azimuth), np.sin(pred_zenith) * np.sin(pred_azimuth), np.cos(pred_zenith)]).T
-        angles = compute_angles_between_vectors(true_vectors, pred_vectors)
-        print(f"Mean opening angle: {np.degrees(angles).mean()} degrees")
-        plot_opening_angle_distribution(true_vectors, pred_vectors, output_dir)        
+        #true_vectors = np.array([np.sin(true_zenith) * np.cos(true_azimuth), np.sin(true_zenith) * np.sin(true_azimuth), np.cos(true_zenith)]).T
+        #pred_vectors = np.array([np.sin(pred_zenith) * np.cos(pred_azimuth), np.sin(pred_zenith) * np.sin(pred_azimuth), np.cos(pred_zenith)]).T
+        #angles = compute_angles_between_vectors(true_vectors, pred_vectors)
+        #print(f"Mean opening angle: {np.degrees(angles).mean()} degrees")
+        #plot_opening_angle_distribution(true_vectors, pred_vectors, output_dir)        
         #print the mean opening angle
         
         # Plot direction vectors
@@ -820,6 +836,90 @@ def main():
         #Make a file with the predictions it should also have event_no, position_x, position_y, position_z, zenith, azimuth
       #  predictions.to_csv(f"{output_dir}/predictions.csv", index=False)
        # print("Predictions saved to CSV file.")
-        
+       
+       
+        # Prepare prediction DataFrame
+        # prediction_cols = ["event_no", "zenith_pred", "azimuth_pred", "zenith_kappa", "azimuth_kappa"]
+        # prediction_cols = []
+        # prediction_df = predictions[prediction_cols].copy()
+
+        # # Output file path
+    #     output_pred = "/groups/icecube/simon/GNN/workspace/data/Stopped_muons/filtered_all_big_data_with_predictions_and_flag.db"
+    #     #db_name = os.path.basename(db_path).replace(".db", "_with_predictions_and_flag.db")
+    #     flagged_output_path = output_pred#os.path.join(output_pred, db_name)
+    #     os.makedirs(os.path.dirname(flagged_output_path), exist_ok=True)
+    #     # with sqlite3.connect(flagged_output_path) as conn_out, sqlite3.connect(db_path) as conn_in:
+    #     #     # Stream + flag the truth table
+    #     #     def add_flag(df):
+    #     #         df["is_train"] = df["event_no"].isin(train_events_filtered).astype(int)
+    #     #         return df
+
+    #     #     copy_table_in_chunks("truth", conn_in, conn_out, chunk_size=100_000, modify_fn=add_flag)
+    #     #     print("Copied `truth` table with `is_train` flag.")
+
+    #     #     # Stream the pulsemap without modification
+    #     #     copy_table_in_chunks("SplitInIcePulsesSRT", conn_in, conn_out, chunk_size=100_000)
+    #     #     print("Copied `SplitInIcePulsesSRT` table.")
+
+    #     #     # Write prediction table (small, in memory is fine)
+    #     #     prediction_df.to_sql("prediction", conn_out, index=False, if_exists="replace")
+    #     #     print("Added `prediction` table.")
+
+
+    #     # print(f"Saved new DB to: {flagged_output_path}")
+
+    # # Define only the new columns to add
+    # cols_to_merge = [
+    #     "event_no",
+    #     "position_x_true_scaled",
+    #     "position_y_true_scaled",
+    #     "position_z_true_scaled",
+    #     "x_pred_kappa",
+    #     "y_pred_kappa",
+    #     "z_pred_kappa",
+    # ]
+
+    # # Stream update in batches
+    # chunk_size = 100_000
+    # offset = 0
+    # updated_chunks = []
+
+    # with sqlite3.connect(flagged_output_path) as conn:
+    #     print("🔄 Reading and updating prediction table in batches...")
+
+    #     while True:
+    #         chunk = pd.read_sql(f"SELECT * FROM prediction LIMIT {chunk_size} OFFSET {offset};", conn)
+    #         if chunk.empty:
+    #             break
+
+    #         merged_chunk = pd.merge(chunk, predictions[cols_to_merge], on="event_no", how="left")
+    #         updated_chunks.append(merged_chunk)
+    #         offset += chunk_size
+
+    #     # Combine all updated chunks and write back
+    #     full_prediction_updated = pd.concat(updated_chunks, ignore_index=True)
+    #     full_prediction_updated.to_sql("prediction", conn, index=False, if_exists="replace")
+    #     print("✅ Updated prediction table with new kappa + scaled true position columns.")
+
+    #     # --- Now update `truth` table with new flag ---
+    #     def add_is_train_v2_flag(df):
+    #         df["is_train_pos"] = df["event_no"].isin(train_events_filtered).astype(int)
+    #         return df
+
+    #     print("🔄 Updating truth table with `is_train_v2` flag...")
+
+    #     offset = 0
+    #     first_chunk = True
+    #     while True:
+    #         chunk = pd.read_sql(f"SELECT * FROM truth LIMIT {chunk_size} OFFSET {offset};", conn)
+    #         if chunk.empty:
+    #             break
+
+    #         chunk = add_is_train_v2_flag(chunk)
+    #         chunk.to_sql("truth", conn, index=False, if_exists="replace" if first_chunk else "append")
+    #         first_chunk = False
+    #         offset += chunk_size
+
+    #     print("✅ Updated truth table with `is_train_v2` flag.")
 if __name__ == "__main__":
     main()

@@ -338,9 +338,9 @@ def plot_charge_fraction_and_launches(pos_array_NQE, pos_array_HQE, nqe_expected
     plt.gca().add_patch(polygon_patch)
     plt.gca().add_patch(polygon_patch_deepcore)
     plt.colorbar(scatter, label="Charge Fraction (Σ(Total charge) / Σ(expected_hits))")
-    plt.xlabel("DOM x-coordinate (jitter applied to HQE)")
-    plt.ylabel("DOM y-coordinate (jitter applied to HQE)")
-    plt.title("DOM Charge Fraction Scatter Plot (NQE & HQE)")
+    plt.xlabel("DOM x-coordinate (jitter applied to HQE)", fontsize=20)
+    plt.ylabel("DOM y-coordinate (jitter applied to HQE)", fontsize=20)
+    plt.title("DOM Charge Fraction Scatter Plot (NQE & HQE)", fontsize=22)
     plt.legend()
     pdf.savefig()
     plt.close()
@@ -356,9 +356,9 @@ def plot_charge_fraction_and_launches(pos_array_NQE, pos_array_HQE, nqe_expected
         c=hqe_positions['total_charge'] , cmap="viridis", s=40, edgecolors='red', label='HQE', facecolors='none', vmin=total_charge_min, vmax=total_charge_max
     )
     plt.colorbar(scatter, label="Total Charge [C]")
-    plt.xlabel("DOM x-coordinate (jitter applied to HQE)")
-    plt.ylabel("DOM y-coordinate (jitter applied to HQE)")
-    plt.title("DOM Total Charge Scatter Plot (NQE & HQE)")
+    plt.xlabel("DOM x-coordinate (jitter applied to HQE)", fontsize=20)
+    plt.ylabel("DOM y-coordinate (jitter applied to HQE)", fontsize=20)
+    plt.title("DOM Total Charge Scatter Plot (NQE & HQE)", fontsize=22)
     plt.legend()
     pdf.savefig()
     plt.close()
@@ -534,9 +534,11 @@ def plot_charge_fraction_and_launches(pos_array_NQE, pos_array_HQE, nqe_expected
     plt.figure(figsize=(10, 8))
     plt.scatter(nqe_positions['dom_x'], (nqe_positions['total_charge'] / nqe_positions['expected_hits']) / monitor_deepcore, label="NQE", alpha=0.7, c="blue")
     plt.scatter(hqe_positions['dom_x'], (hqe_positions['total_charge'] / hqe_positions['expected_hits']) / monitor_deepcore, label="HQE", alpha=0.7, c="orange", edgecolors='black')
-    plt.xlabel("DOM x-coordinate")
-    plt.ylabel("RIDE Deepcore (Monitored to NQE)") 
-    plt.title("RIDE vs DOM x-coordinate")
+    plt.xlabel("DOM x-coordinate", fontsize=20)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.ylabel("RIDE Deepcore (Monitored to NQE)", fontsize=20) 
+    plt.title("RIDE vs DOM x-coordinate", fontsize=22)
     plt.legend()
     plt.grid()
     pdf.savefig()
@@ -545,9 +547,11 @@ def plot_charge_fraction_and_launches(pos_array_NQE, pos_array_HQE, nqe_expected
     plt.scatter(nqe_positions['dom_x'], (nqe_positions['total_charge'] / nqe_positions['expected_hits']) / monitor, label="NQE", alpha=0.7, c="blue")
     plt.scatter(hqe_positions['dom_x'], (hqe_positions['total_charge'] / hqe_positions['expected_hits']) / monitor, label="HQE", alpha=0.7, c="orange", edgecolors='black')
     
-    plt.xlabel("DOM x-coordinate")
-    plt.ylabel("RIDE (Monitored to NQE)")
-    plt.title("RIDE vs DOM x-coordinate")
+    plt.xlabel("DOM x-coordinate", fontsize=20)
+    plt.ylabel("RIDE (Monitored to NQE)", fontsize=20)
+    plt.title("RIDE vs DOM x-coordinate", fontsize=22)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.legend()
     plt.grid()
     pdf.savefig()
@@ -920,7 +924,7 @@ def plot_high_expected_hits_histogram(
 # Main Function
 # -------------------------------
 def main():
-    file_path = '/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_no_cuts.db'
+    file_path = '/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db'
     #file_path = '/groups/icecube/simon/GNN/workspace/filtered.db'
     con = sqlite3.connect(file_path)
     cursor = con.cursor()
@@ -940,13 +944,13 @@ def main():
     output_dir = "/groups/icecube/simon/GNN/workspace/Plots"
     os.makedirs(output_dir, exist_ok=True)
     # Filter DOMs by depth and strings
-    all_depth_bins = np.arange(-500, 300, 10)
+    all_depth_bins = np.arange(-500, 0, 10)
     pulses_df['depth_bin'] = pd.cut(pulses_df['dom_z'], bins=all_depth_bins, labels=all_depth_bins[:-1])
     pulses_df = pulses_df[pulses_df['string'] < 87.0]
 
     # Define focus depth bins and distance ranges
-    focus_depth_bins = [140, -210]#, -310, -320]
-    distance_ranges = [(10, 110)]#, (5,20)]#, (5, 100), (5, 200)]
+    focus_depth_bins = [-250, -210]#, -310, -320]
+    distance_ranges = [(10, 110),(5,20)]#, (5,20)]#, (5, 100), (5, 200)]
     pulses_df['corrected_dom_time'] = pulses_df['dom_time'] - pulses_df.groupby('event_no')['dom_time'].transform('min')
 
 
@@ -1047,13 +1051,13 @@ def main():
             expected_hits_HQE, total_charge_HQE, launches_HQE, polygon_coords, polygon_coords_deepcore, pdf
                 )
                 #plot_charge_distribution_by_DOM(doms_in_range, pdf)
-                plot_dom_participation_heatmap(pulses_df, pdf)
+                #plot_dom_participation_heatmap(pulses_df, pdf)
                 #plot_efficiency_ratio(launches_NQE, expected_hits_NQE, launches_HQE, expected_hits_HQE, pdf)
-                plot_distance_histogram(distances_combined_flat, pdf)
-                plot_high_expected_hits_histogram(pos_array_NQE, expected_hits_NQE, launches_NQE, dom_times_combined, dom_charges_combined, dom_distance_combined, total_charge_NQE,  pdf)
-                plot_unique_dom_launches_histogram(pulses_df, pdf)
+                #plot_distance_histogram(distances_combined_flat, pdf)
+                #plot_high_expected_hits_histogram(pos_array_NQE, expected_hits_NQE, launches_NQE, dom_times_combined, dom_charges_combined, dom_distance_combined, total_charge_NQE,  pdf)
+                #plot_unique_dom_launches_histogram(pulses_df, pdf)
                 #plot_starting_points(start_xs, start_ys, start_zs, pdf)
-                plot_total_charge_vs_distance(all_dom_distances, all_dom_charges, pdf)
+                #plot_total_charge_vs_distance(all_dom_distances, all_dom_charges, pdf)
 
             print(f"Saved PDF: {pdf_filename}")
             

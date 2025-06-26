@@ -83,164 +83,158 @@ def calculate_minimum_distance_to_track(pos_array, true_x, true_y, true_z,
     closest_points = stop_point + clamped_projections[:, np.newaxis] * direction_vector
     return np.linalg.norm(pos_array[:, :3]  - closest_points, axis=1)
 
-def compute_weighted_expectation(pos_array, true_x, true_y, true_z,
-                              true_zenith, true_azimuth, track_length,
-                              photon_speed=0.299792458/1.32, distance_lower=10,
-                              cherenkov_angle_deg=41, muon_speed=0.299792458):
+def calculate_expected_arrival_time(x0, y0, z0, zenith, azimuth, pos_array, dom_string, dom_number, 
+                                    track_start_time=0, c=0.2998, n=1.33):
     """
-    Compute the expected photon arrival time for each DOM based on the Cherenkov emission point.
-    The emission point is determined by projecting backwards from the muon stop point such that
-    the angle from the emission point to the DOM satisfies the Cherenkov condition.
-
-    Returns:
-        expected_times_ns: array of photon arrival times including muon and photon travel time.
-            (np.inf for DOMs with distance < distance_lower).
+    Calculates the expected arrival time of a Cherenkov photon from a muon track to a DOM,
+    accounting for muon propagation and Cherenkov emission angle.
+    
+    track_start_time: in ns, optional offset if DOM times are relative to event start.
     """
-    expected_times_ns = np.full(pos_array.shape[0], np.inf)
+    # Get DOM position
+    dom_mask = (pos_array[:, 3] == dom_string) & (pos_array[:, 4] == dom_number)
+    if not np.any(dom_mask):
+        return np.inf
+    dom_pos = pos_array[dom_mask][0, :3]
 
-    stop_point = np.array([true_x, true_y, true_z])  # endpoint of the muon track
-    direction_vector = np.array([
-        np.sin(true_zenith)*np.cos(true_azimuth),
-        np.sin(true_zenith)*np.sin(true_azimuth),
-        np.cos(true_zenith)
+    # Muon direction vector (unit)
+    v = np.array([
+        np.sin(zenith) * np.cos(azimuth),
+        np.sin(zenith) * np.sin(azimuth),
+        np.cos(zenith)
     ])
+    
+    r0 = np.array([x0, y0, z0])  # muon start position
+    r_dom = dom_pos
+    r_rel = r_dom - r0
 
-    cos_theta_c = np.cos(np.deg2rad(cherenkov_angle_deg))
+    proj_length = np.dot(r_rel, v)  # projection of DOM onto track direction
+    r_para = proj_length * v
+    r_perp = r_rel - r_para
+    d_perp = np.linalg.norm(r_perp)
 
-    dom_vectors = pos_array[:, :3] - stop_point
-    dom_distances = np.linalg.norm(dom_vectors, axis=1)
-    dom_unit_vectors = dom_vectors / (dom_distances[:, np.newaxis] + 1e-10)
+    theta_c = np.arccos(1 / n)
+    d_track = d_perp / np.tan(theta_c)  # how far along the track the emission occurs
 
-    # Compute projection distance backwards from stop point
-    backward_proj = -dom_distances * cos_theta_c
-    clamped_proj = np.clip(backward_proj, -track_length, 0)
+    emission_point = r0 + v * d_track
+    d_mu = d_track
+    d_gamma = np.linalg.norm(r_dom - emission_point)
 
-    emission_points = stop_point + clamped_proj[:, np.newaxis] * direction_vector
-    photon_travel_distances = np.linalg.norm(pos_array[:, :3] - emission_points, axis=1)
-    muon_travel_distances = -clamped_proj  # muon travels backward
+    t_mu = d_mu / c
+    t_gamma = n * d_gamma / c
+    expected_time = track_start_time + t_mu + t_gamma
 
-    muon_travel_times = muon_travel_distances / muon_speed
-    photon_travel_times = photon_travel_distances / photon_speed
+    # Debugging output
+    print(f"[DEBUG] DOM ({dom_string}, {dom_number}) | d_mu={d_mu:.2f} m | d_gamma={d_gamma:.2f} m")
+    print(f"[DEBUG] t_mu={t_mu:.2f} ns | t_gamma={t_gamma:.2f} ns | expected_time={expected_time:.2f} ns")
 
-    total_travel_times_ns = (muon_travel_times + photon_travel_times)
+    return expected_time
 
-    valid_doms = photon_travel_distances >= distance_lower
-    expected_times_ns[valid_doms] = total_travel_times_ns[valid_doms]
+def compute_t0_from_earliest_photon(pulse_rows, pos_array, event, col_string, col_dom_number, col_dom_time,
+                                    c=0.2998, n=1.33):
+    earliest_row = min(pulse_rows, key=lambda row: row[col_dom_time])
+    dom_string = int(earliest_row[col_string])
+    dom_number = int(earliest_row[col_dom_number])
+    dom_time = earliest_row[col_dom_time]
 
-    return expected_times_ns
+    dom_mask = (pos_array[:, 3] == dom_string) & (pos_array[:, 4] == dom_number)
+    if not np.any(dom_mask):
+        return None
+    dom_pos = pos_array[dom_mask][0, :3]
+
+    v = np.array([
+        np.sin(event.zenith) * np.cos(event.azimuth),
+        np.sin(event.zenith) * np.sin(event.azimuth),
+        np.cos(event.zenith)
+    ])
+    r0 = np.array([event.position_x, event.position_y, event.position_z])
+    r_rel = dom_pos - r0
+    proj_length = np.dot(r_rel, v)
+    r_perp = r_rel - proj_length * v
+    d_perp = np.linalg.norm(r_perp)
+    theta_c = np.arccos(1 / n)
+    d_track = d_perp / np.tan(theta_c)
+    emission_point = r0 + v * d_track
+    d_gamma = np.linalg.norm(dom_pos - emission_point)
+    t_gamma = n * d_gamma / c
+    t_mu = d_track / c
+    return dom_time - (t_gamma + t_mu)
 
 
 
-def process_event_chunk(chunk, pulses_df_np, pos_array,
-                        pulse_event_col, col_string, col_dom_number, col_charge, col_dom_time,
-                        distance_lower, upper_bounds):
+def process_event_chunk(chunk, pulses_df_np, pos_array, pulse_event_col, col_string, col_dom_number, col_charge, col_dom_time,
+                        distance_lower, upper_bounds, timing_cut_ns=380):
     """
-    Process a single chunk of events. Only adds charge if DOM is within distance range and pulse is within timing window.
+    Process a single chunk of events, now with a physics-based timing cut 
+    to reduce scattered light based on Cherenkov emission geometry.
     """
+    # Preprocess pulse data by event
     event_map = preprocess_pulses(pulses_df_np, pulse_event_col)
     pos_strings = pos_array[:, 3].astype(int)
     pos_dom_numbers = pos_array[:, 4].astype(int)
 
     accum = {ub: {"hits_79": {}, "chg_79": {}, "hits_80": {}, "chg_80": {}} for ub in upper_bounds}
-    timing_window_ns = 40000  # allowable time deviation from expected direct light
-    filtered_out = 0
+
     for event in chunk.itertuples(index=False):
         event_no = event.event_no
-
-        # Compute min distances for all DOMs
         min_dists = calculate_minimum_distance_to_track(
             pos_array,
             event.position_x, event.position_y, event.position_z,
             event.zenith, event.azimuth, event.track_length
         )
 
-        # Get expected arrival times (or inf if too close)
-        expected_times_ns = compute_weighted_expectation(
-            pos_array,
-            event.position_x, event.position_y, event.position_z,
-            event.zenith, event.azimuth, event.track_length
-        )
-        # Time-zero is the earliest expected photon arrival time across all DOMs
-        #reference_time = np.min(expected_times_ns[np.isfinite(expected_times_ns)])
-
-
-        if event_no not in event_map:
-            continue
-
-        event_pulses = event_map[event_no]
-        if len(event_pulses) == 0:
-            continue
-
-        #t0 = np.min(event_pulses[:, col_dom_time])
-        #centered_times = event_pulses[:, col_dom_time] - reference_time
-        finite_mask = np.isfinite(expected_times_ns)
-        earliest_dom_idx = np.argmin(expected_times_ns[finite_mask])
-        expected_dom_indices = np.where(finite_mask)[0]
-        earliest_dom_global_idx = expected_dom_indices[earliest_dom_idx]
-
-        # Compute the emission time of this earliest DOM:
-        muon_speed = 0.299792458  # m/ns
-        photon_speed = 0.299792458 / 1.32
-
-        muon_travel_time = (
-            expected_times_ns[earliest_dom_global_idx] - 
-            np.linalg.norm(pos_array[earliest_dom_global_idx, :3] - 
-                        (np.array([event.position_x, event.position_y, event.position_z])) 
-                        ) / photon_speed
-        )
-        emission_t0 = muon_travel_time
-
-        # Shift DOM times by t0 = earliest emission time
-        centered_times = event_pulses[:, col_dom_time] - emission_t0
-        # Build a charge lookup dictionary, filtered by timing cut
         pulse_dict = {}
-        expected_times_ns -= emission_t0
-        for row, arrival_time in zip(event_pulses, centered_times):
-            s_id = int(row[col_string])
-            dom = int(row[col_dom_number])
-            chg = row[col_charge]
+        if event_no in event_map:
+            
+            t0 = compute_t0_from_earliest_photon(
+                pulse_rows=event_map[event_no],
+                pos_array=pos_array,
+                event=event,
+                col_string=col_string,
+                col_dom_number=col_dom_number,
+                col_dom_time=col_dom_time
+            )
+            for row in event_map[event_no]:
+                dom_string = int(row[col_string])
+                dom_number = int(row[col_dom_number])
+                dom_time = row[col_dom_time]
 
-            dom_idx = np.where((pos_strings == s_id) & (pos_dom_numbers == dom))[0]
-            if len(dom_idx) == 0:
-                print(f"DOM {s_id}-{dom} not found in pos_array.")
-                continue
-            i = dom_idx[0]
+                expected_time = calculate_expected_arrival_time(
+                    event.position_x, event.position_y, event.position_z,
+                    event.zenith, event.azimuth,
+                    pos_array,
+                    dom_string, dom_number,
+                    track_start_time=0
+                )
+                dom_shifted_time = dom_time - t0
+                expected_time_shifted = expected_time 
+                delta_t = abs(dom_shifted_time - expected_time_shifted)
+                print(f"DOM time: {dom_shifted_time:.2f} ns | Expected time: {expected_time_shifted:.2f} ns |Earliest time : {t0:.2f} | Δt: {delta_t:.2f} ns")
 
-            expected_time = expected_times_ns[i]
-            if np.isinf(expected_time):
-                print(f"DOM {s_id}-{dom} has infinite expected time.")
-                continue
-            print(f"DOM: {s_id}-{dom} | Expected: {expected_time:.2f} ns | Arrival: {arrival_time:.2f} ns | Δt = {abs(arrival_time - expected_time):.2f} ns")
+                # Apply physics-based timing cut
+                if delta_t <= timing_cut_ns:
+                    
+                    key = (dom_string, dom_number)
+                    
+                    pulse_dict[key] = pulse_dict.get(key, 0) + row[col_charge]
 
-            if abs(arrival_time - expected_time) > timing_window_ns:
-                filtered_out +=1
-                continue
-
-            key = (s_id, dom)
-            pulse_dict[key] = pulse_dict.get(key, 0) + chg
-            print("Expected times (ns):", np.min(expected_times_ns), np.max(expected_times_ns))
-            print("DOM times     (ns):", np.min(centered_times), np.max(centered_times))
-
-        # Accumulate charge for DOMs passing distance + timing cut
         for ub in upper_bounds:
             mask = (min_dists >= distance_lower) & (min_dists < ub)
             for i, valid in enumerate(mask):
-                if not valid:
-                    continue
-                dom_num = pos_dom_numbers[i]
-                s_id = pos_strings[i]
-                key = (s_id, dom_num)
-                chg = pulse_dict.get(key, 0)
+                if valid:
+                    dom_num = int(pos_dom_numbers[i])
+                    s_id = int(pos_strings[i])
+                    if s_id == 80:
+                        accum[ub]["hits_80"][dom_num] = accum[ub]["hits_80"].get(dom_num, 0) + 1
+                        accum[ub]["chg_80"][dom_num] = accum[ub]["chg_80"].get(dom_num, 0) + pulse_dict.get((80, dom_num), 0)
+                    else:
+                        key = f"{s_id}-{dom_num}"
+                        accum[ub]["hits_79"][key] = accum[ub]["hits_79"].get(key, 0) + 1
+                        accum[ub]["chg_79"][key] = accum[ub]["chg_79"].get(key, 0) + pulse_dict.get((s_id, dom_num), 0)
 
-                if s_id == 80:
-                    accum[ub]["hits_80"][dom_num] = accum[ub]["hits_80"].get(dom_num, 0) + 1
-                    accum[ub]["chg_80"][dom_num] = accum[ub]["chg_80"].get(dom_num, 0) + chg
-                else:
-                    dom_key = f"{s_id}-{dom_num}"
-                    accum[ub]["hits_79"][dom_key] = accum[ub]["hits_79"].get(dom_key, 0) + 1
-                    accum[ub]["chg_79"][dom_key] = accum[ub]["chg_79"].get(dom_key, 0) + chg
-    print(f"DOMs filtered by timing: {filtered_out}")
     return accum
+
+
 
 def process_event_chunk_wrapper(args):
     return process_event_chunk(*args)
@@ -248,7 +242,11 @@ def process_event_chunk_wrapper(args):
 
 def compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pulses_df, pos_array):
     """
-    Now parallelized across event chunks using ProcessPoolExecutor.
+    Parallelized RIDE calculation.
+    
+    Returns:
+      - ratio_all: per-DOM RIDE ratios (string X / string 80)
+      - hit_counts_all: DOM-level hit counts per distance bin (only string X DOMs)
     """
     pulses_df_np = pulses_df.to_numpy()
     pulse_event_col = pulses_df.columns.get_loc("event_no")
@@ -262,40 +260,62 @@ def compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pul
     with ProcessPoolExecutor(max_workers=12) as executor:
         args_list = [
             (chunk, pulses_df_np, pos_array, pulse_event_col,
-            col_string, col_dom_number, col_charge, col_dom_time, distance_lower, upper_bounds)
+             col_string, col_dom_number, col_charge, col_dom_time, distance_lower, upper_bounds)
             for chunk in event_chunks
         ]
         results = list(tqdm(executor.map(process_event_chunk_wrapper, args_list), total=len(args_list)))
-        
+
+    # Merge results
     for result in results:
         for ub in upper_bounds:
             for key in ["hits_79", "chg_79", "hits_80", "chg_80"]:
                 for dom, val in result[ub][key].items():
                     merged_accum[ub][key][dom] = merged_accum[ub][key].get(dom, 0) + val
-                    
-    # Final ratio calculation
+
+    # Compute final ratio and hit count maps
     ratio_all = {}
+    hit_counts_all = {}
+
     for ub in upper_bounds:
+        hits_79 = merged_accum[ub]["hits_79"]
+        chg_79 = merged_accum[ub]["chg_79"]
+        hits_80 = merged_accum[ub]["hits_80"]
+        chg_80 = merged_accum[ub]["chg_80"]
+
         ratio_dict = {}
-        hits_other = merged_accum[ub]["hits_79"]
-        chg_other = merged_accum[ub]["chg_79"]
-        hits80 = merged_accum[ub]["hits_80"]
-        chg80 = merged_accum[ub]["chg_80"]
-      #  common_doms = set(hits79.keys()) & set(hits80.keys())
-        for dom_key in hits_other:
+        hit_count_bin = {}
+
+        for dom_key in hits_79:
             try:
-                string_id, dom_number = dom_key.split('-')
+                string_id, dom_number = dom_key.split("-")
                 dom_number = int(dom_number)
 
-                ride_other = chg_other[dom_key] / hits_other[dom_key] if hits_other[dom_key] > 0 else 0
-                ride_80 = chg80.get(dom_number, 0) / hits80.get(dom_number, 1) if hits80.get(dom_number, 0) > 0 else 0
+                if dom_number not in hits_80:
+                    continue  # no reference DOM hit for comparison
 
-                ratio_dict[dom_key] = ride_other / ride_80 if ride_80 > 0 else 0
+                hits_x = hits_79[dom_key]
+                hits_y = hits_80.get(dom_number, 0)
+
+                if hits_x == 0 or hits_y == 0:
+                    continue
+
+                ride_x = chg_79.get(dom_key, 0) / hits_x
+                ride_y = chg_80.get(dom_number, 0) / hits_y
+
+                if ride_y > 0:
+                    ratio_dict[dom_key] = ride_x / ride_y
+                    hit_count_bin[dom_key] = hits_x  # Only from string X
             except Exception as e:
                 print(f"[Warning] Could not compute ratio for {dom_key}: {e}")
 
         ratio_all[ub] = ratio_dict
-    return ratio_all
+        hit_counts_all[ub] = hit_count_bin  # Excludes string 80 by design
+
+    return ratio_all, hit_counts_all, {
+        ub: merged_accum[ub]["chg_79"] for ub in upper_bounds
+    } , {
+    ub: merged_accum[ub]["chg_80"] for ub in upper_bounds
+    }
 
 
 def plot_dom_ratio_heatmap_time(ratio_results, output_dir, filename="dom_ratio_heatmap_timing_filtered.png"):
@@ -337,8 +357,123 @@ def plot_dom_ratio_heatmap_time(ratio_results, output_dir, filename="dom_ratio_h
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     plt.close()
-
     
+def plot_combined_dom_and_string_heatmaps(hit_counts_all, output_dir, filename="combined_participation_heatmap.png"):
+    """
+    Plots two heatmaps side-by-side:
+    - Left: DOM-level participation (string-dom on Y-axis, distance bins on X-axis)
+    - Right: String-level participation (count of DOMs from each string per bin)
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import matplotlib.colors as colors
+    import os
+
+    upper_bounds = sorted(hit_counts_all.keys())
+    all_dom_keys = sorted(set().union(*(hit_counts_all[ub].keys() for ub in upper_bounds)))
+    sorted_doms = sorted(all_dom_keys, key=lambda x: (int(x.split('-')[1]), int(x.split('-')[0])))
+
+    # DOM-level matrix
+    dom_matrix = np.zeros((len(sorted_doms), len(upper_bounds)))
+    for j, ub in enumerate(upper_bounds):
+        for i, dom_key in enumerate(sorted_doms):
+            if dom_key in hit_counts_all[ub]:
+                dom_matrix[i, j] = hit_counts_all[ub][dom_key]
+
+    # String-level matrix
+    all_strings = sorted(set(int(dom.split('-')[0]) for dom in sorted_doms))
+    string_index = {s: i for i, s in enumerate(all_strings)}
+    string_matrix = np.zeros((len(all_strings), len(upper_bounds)))
+    for j, ub in enumerate(upper_bounds):
+        for dom_key in hit_counts_all[ub]:
+            s_id = int(dom_key.split('-')[0])
+            i = string_index[s_id]
+            string_matrix[i, j] += 1
+
+    # Plot
+    fig, axs = plt.subplots(1, 2, figsize=(18, 10), sharex=True)
+
+    # DOM heatmap
+    dom_norm = colors.LogNorm(vmin=1, vmax=np.nanmax(dom_matrix))
+    im1 = axs[0].imshow(dom_matrix, aspect='auto', origin='lower', cmap='plasma', norm=dom_norm)
+    axs[0].set_title("DOM Participation (string-dom)")
+    axs[0].set_yticks(np.arange(len(sorted_doms)))
+    axs[0].set_yticklabels(sorted_doms)
+    axs[0].set_ylabel("DOM (string-dom)")
+    axs[0].set_xlabel("Distance Upper Bound (m)")
+    axs[0].set_xticks(np.arange(len(upper_bounds)))
+    axs[0].set_xticklabels(upper_bounds)
+    plt.colorbar(im1, ax=axs[0], label="DOM Hit Count")
+
+    # String heatmap
+    im2 = axs[1].imshow(string_matrix, aspect='auto', origin='lower', cmap='plasma')
+    axs[1].set_title("String Participation (Number of DOMs per Bin)")
+    axs[1].set_yticks(np.arange(len(all_strings)))
+    axs[1].set_yticklabels(all_strings)
+    axs[1].set_xlabel("Distance Upper Bound (m)")
+    axs[1].set_xticks(np.arange(len(upper_bounds)))
+    axs[1].set_xticklabels(upper_bounds)
+    plt.colorbar(im2, ax=axs[1], label="DOM Count")
+
+    plt.suptitle("DOM and String Participation Heatmaps by Distance Bin", fontsize=16)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    os.makedirs(output_dir, exist_ok=True)
+    plt.savefig(os.path.join(output_dir, filename), dpi=300)
+    plt.close()
+    
+    
+
+def plot_dom_charge_heatmap(charge_79_all, charge_80_all, output_dir, filename="dom_charge_heatmap_time.png", log_scale=True):
+    """
+    Plots a heatmap of total DOM charge per distance bin for both string X and string 80 DOMs.
+
+    Parameters:
+        charge_79_all: dict {ub: {string-dom: charge}}
+        charge_80_all: dict {ub: {dom_number: charge}} → will be reformatted as '80-dom'
+        output_dir: str
+        filename: str
+        log_scale: bool
+    """
+    # Combine both charge dicts using "string-dom" key format
+    charge_all = {}
+    for ub in sorted(charge_79_all.keys()):
+        combined = charge_79_all[ub].copy()
+        for dom, val in charge_80_all.get(ub, {}).items():
+            combined[f"80-{dom}"] = val
+        charge_all[ub] = combined
+
+    upper_bounds = sorted(charge_all.keys())
+    all_dom_keys = sorted(set().union(*(charge_all[ub].keys() for ub in upper_bounds)))
+    sorted_doms = sorted(all_dom_keys, key=lambda x: (int(x.split('-')[1]), int(x.split('-')[0])))
+
+    data_matrix = np.full((len(sorted_doms), len(upper_bounds)), 0.0)
+    for j, ub in enumerate(upper_bounds):
+        for i, dom_key in enumerate(sorted_doms):
+            if dom_key in charge_all[ub]:
+                data_matrix[i, j] = charge_all[ub][dom_key]
+
+    # Plot
+    plt.figure(figsize=(14, 10))
+    if log_scale:
+        norm = colors.LogNorm(vmin=1e-2, vmax=np.max(data_matrix))
+    else:
+        norm = None
+    im = plt.imshow(data_matrix, aspect='auto', origin='lower', cmap='inferno', norm=norm)
+
+    plt.colorbar(im, label="Total Charge (PE)")
+    plt.xlabel("Distance Upper Bound (m)")
+    plt.ylabel("DOM (string-dom_number)")
+    plt.title("Total Charge per DOM per Distance Bin (including String 80)")
+
+    plt.xticks(np.arange(len(upper_bounds)), upper_bounds)
+    plt.yticks(np.arange(len(sorted_doms)), sorted_doms)
+
+    os.makedirs(output_dir, exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, filename), dpi=300)
+    plt.close()
+
+
 def main():
     # Load data from the filtered DB.
     file_path = '/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db'
@@ -378,9 +513,12 @@ def main():
     upper_bounds = np.arange(15, 161, 5)  # 20, 30, 40, ... 160
     output_dir = '/groups/icecube/simon/GNN/workspace/Plots/'
     # Compute the per-DOM ratios for all distance ranges.
-    ratio_results = compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pulses_df, pos_array)
+    ratio_results,hit_counts_all,chg_79_all, chg_80_all  = compute_dom_ratio_all_ranges(distance_lower, upper_bounds, event_chunks, pulses_df, pos_array)
 
     plot_dom_ratio_heatmap_time(ratio_results, output_dir)
+    plot_combined_dom_and_string_heatmaps(hit_counts_all, output_dir)
+    #plot_dom_hit_heatmap(hit_counts_all, output_dir,log_scale=False)
+    plot_dom_charge_heatmap(chg_79_all,chg_80_all, output_dir, log_scale=False)
     # Print results for each upper bound.
     for ub in sorted(ratio_results.keys()):
         print(f"Distance range: {distance_lower} to {ub}")

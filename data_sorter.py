@@ -7,8 +7,8 @@ from collections import defaultdict
 pd.set_option('display.max_columns', None)
 
 # Input and output database paths
-file_path = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db"
-output_db_path = "/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/filtered_all_no_upgrade.db"
+file_path = "/groups/icecube/simon/GNN/workspace/data/final_data/merged/merged.db"
+output_db_path = "/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/2mill_stopping_muons.db"
 
 # Remove existing output DB if it exists
 if os.path.exists(output_db_path):
@@ -39,7 +39,7 @@ print("Scanning pulses to find valid events (≥3 pulses on strings ≤ 86)...")
 event_pulse_counts = defaultdict(int)
 
 for chunk in pd.read_sql_query("SELECT event_no, string FROM SplitInIcePulsesSRT", con_in, chunksize=chunksize):
-    chunk_valid = chunk[chunk['string'] <= 86]
+    chunk_valid = chunk[chunk['string'] <= 93]
     counts = chunk_valid['event_no'].value_counts()
     for event_no, count in counts.items():
         event_pulse_counts[event_no] += count
@@ -68,12 +68,28 @@ print("Filtering and writing the SplitInIcePulsesSRT table...")
 for chunk in pd.read_sql_query("SELECT * FROM SplitInIcePulsesSRT", con_in, chunksize=chunksize):
     chunk_filtered = chunk[
         (chunk['event_no'].isin(valid_event_nos)) &
-        (chunk['string'] <= 86)
+        (chunk['string'] <= 93)
     ]
     chunk_filtered.to_sql('SplitInIcePulsesSRT', con_out, if_exists='append', index=False)
 con_out.commit()
 
 # --- Finalization ---
+
+print("Creating indexes for faster querying...")
+cur = con_out.cursor()
+
+# Index on event_no in truth
+cur.execute("CREATE INDEX IF NOT EXISTS idx_truth_event_no ON truth (event_no);")
+
+# Index on event_no in pulses
+cur.execute("CREATE INDEX IF NOT EXISTS idx_pulses_event_no ON SplitInIcePulsesSRT (event_no);")
+
+# Optional: Add more if needed (e.g., dom_time or string)
+cur.execute("CREATE INDEX IF NOT EXISTS idx_pulses_dom_time ON SplitInIcePulsesSRT (dom_time);")
+cur.execute("CREATE INDEX IF NOT EXISTS idx_pulses_string ON SplitInIcePulsesSRT (string);")
+
+con_out.commit()
+
 con_in.close()
 con_out.close()
 print(f"✅ Filtered database created at: {output_db_path}")

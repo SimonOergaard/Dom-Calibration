@@ -1,18 +1,40 @@
-from icecube import icetray, dataio
-import glob, os
-from icecube.linefit import simple as robust_linefit_simple
-# Build combined file list: GCD first, then physics files.
-gcd_file = "/groups/icecube/simon/GNN/workspace/data/GCD_files/GeoCalibDetectorStatus_ICUpgrade.v58.mixed.V1.i3.bz2"
-input_folder = "/groups/icecube/simon/GNN/workspace/data/I3_files/132028/"
-physics_files = glob.glob(os.path.join(input_folder, "*.i3.zst*"))
-combined_list = [gcd_file] + physics_files
+import pandas as pd
+import matplotlib.pyplot as plt
+import sqlite3
+import os
 
-tray = icetray.I3Tray()
-tray.AddModule("I3Reader", "reader", FilenameList=combined_list)
-tray.AddModule(lambda frame: print("Frame keys:", list(frame.keys())), "printer", Streams=[icetray.I3Frame.Geometry])
-def pulli3omgeo(frame):
-    global i3omgeo
-    i3omgeo = frame["I3Geometry"].omgeo
-tray.Add(pulli3omgeo,"soitonlyhappensonce",Streams=[icetray.I3Frame.Geometry])
+def plot_domz_vs_charge(file_path, output_dir, table_name="SRTInIcePulses", label="RD", target_x=106.94, target_y=27.09, tolerance=3.0):
+    os.makedirs(output_dir, exist_ok=True)
 
-tray.Execute()
+    # Load data
+    con = sqlite3.connect(file_path)
+    df = pd.read_sql_query(f"SELECT dom_x, dom_y, dom_z, charge FROM {table_name}", con)
+    con.close()
+
+    # Apply box filter
+    df_filtered = df[
+        (df["dom_x"] >= target_x - tolerance) & (df["dom_x"] <= target_x + tolerance) &
+        (df["dom_y"] >= target_y - tolerance) & (df["dom_y"] <= target_y + tolerance)
+    ]
+
+    # Group by dom_z and sum charge
+    df_grouped = df_filtered.groupby("dom_z", as_index=False)["charge"].sum()
+
+    # Plot
+    plt.figure(figsize=(10, 6))
+    plt.scatter(df_grouped["dom_z"], df_grouped["charge"], alpha=0.7)
+    plt.xlabel("DOM Z position [m]", fontsize=16)
+    plt.ylabel("Total Charge", fontsize=16)
+    plt.title(f"Charge vs DOM Z (x={target_x}±{tolerance}, y={target_y}±{tolerance})", fontsize=18)
+    plt.grid(True)
+    plt.tight_layout()
+    filename = f"domz_vs_charge_stopped_muon_sorted_{label}.png"
+    plt.savefig(os.path.join(output_dir, filename))
+    plt.close()
+
+    print(f"Plot saved to {os.path.join(output_dir, filename)}")
+if __name__ == "__main__":
+    # Example usage
+    file_path = "/groups/icecube/simon/GNN/workspace/storage/Training/stopped_through_classification/train_model_without_configs/muon_stopped_sorted.db"
+    output_dir = "/groups/icecube/simon/GNN/workspace/plots"
+    plot_domz_vs_charge(file_path, output_dir)

@@ -241,7 +241,7 @@ import matplotlib.pyplot as plt
 import os
 
 def plot_scatter_metrics_over_depth_with_rde(
-    metrics_79, metrics_80, metrics_47, metrics_84, output_dir
+    metrics_79, metrics_80, metrics_84, output_dir
 ):
     """
     Generate scatter plots for metrics over depth with marker styles based on RDE.
@@ -262,7 +262,7 @@ def plot_scatter_metrics_over_depth_with_rde(
         string_colors = {
             "String 79": "blue",
             "String 80": "green",
-            "String 47": "red",
+         #   "String 47": "red",
             "String 84": "purple",
         }
 
@@ -270,7 +270,7 @@ def plot_scatter_metrics_over_depth_with_rde(
         for string_label, metrics, color in [
             ("String 79", metrics_79, "blue"),
             ("String 80", metrics_80, "green"),
-            ("String 47", metrics_47, "red"),
+           # ("String 47", metrics_47, "red"),
             ("String 84", metrics_84, "purple"),
         ]:
             # Scatter for RDE = 1.0 (circles)
@@ -294,7 +294,10 @@ def plot_scatter_metrics_over_depth_with_rde(
         # Finalize plot
         plt.xlabel("Depth (m)")
         plt.ylabel(metric_name.replace("_", " ").capitalize())
-        plt.title(f"{metric_name.replace('_', ' ').capitalize()} vs Depth")
+        plt.title(f"{metric_name.replace('_', ' ').capitalize()} vs Depth", fontsize=22)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
+        
         plt.grid(axis="both", linestyle="--", alpha=0.7)
         plt.legend(loc="upper right")  # Single legend per string & RDE
         plt.tight_layout()
@@ -307,7 +310,7 @@ def plot_scatter_metrics_over_depth_with_rde(
 
 
 def main():
-    file_path = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_no_cuts.db"
+    file_path = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db"
     con = sqlite3.connect(file_path)
     cursor = con.cursor()
     
@@ -428,14 +431,14 @@ def main():
     # Apply jitter to z-coordinates for each metric
     aggregated_metrics_79["dom_z"] = jitter_coordinates(aggregated_metrics_79["dom_z"], bin_size)
     aggregated_metrics_80["dom_z"] = jitter_coordinates(aggregated_metrics_80["dom_z"], bin_size)
-    aggregated_metrics_47["dom_z"] = jitter_coordinates(aggregated_metrics_47["dom_z"], bin_size)
+    #aggregated_metrics_47["dom_z"] = jitter_coordinates(aggregated_metrics_47["dom_z"], bin_size)
     aggregated_metrics_84["dom_z"] = jitter_coordinates(aggregated_metrics_84["dom_z"], bin_size)
 
     # Generate scatter plots
     plot_scatter_metrics_over_depth_with_rde(
         aggregated_metrics_79,
         aggregated_metrics_80,
-        aggregated_metrics_47,
+        #aggregated_metrics_47,
         aggregated_metrics_84,
         output_dir,
     )

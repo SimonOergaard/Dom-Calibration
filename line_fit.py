@@ -472,6 +472,9 @@ def plot_event_with_fit(
     ax.plot_surface(Xcyl, Ycyl, Zcyl, color='blue', alpha=0.2)
     
     # Axis labels, title, legend
+    ax.set_xlim(-400, 400)
+    ax.set_ylim(-300, 400)
+    ax.set_zlim(-500, -100)
     ax.set_xlabel('DOM X')
     ax.set_ylabel('DOM Y')
     ax.set_zlabel('DOM Z')

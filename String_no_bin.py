@@ -70,9 +70,10 @@ def process_events_with_charge_and_launches(event_chunk, pulses_df, pos_array, d
     dom_charges = [[] for _ in range(len(pos_array))]
     dom_distances = [[] for _ in range(len(pos_array))]
     #print_memory_usage("After initializing arrays")
-    all_dom_distances = []
+    dom_all_distances = [[] for _ in range(len(pos_array))]  # NEW: accumulate distances for every DOM across all events
+
     all_dom_charges = []
-    
+    all_dom_distances = []
     # # Preprocess pulses for quick lookup
     pulses_np = pulses_df.to_numpy()
     pulse_event_col = pulses_df.columns.get_loc("event_no")
@@ -92,13 +93,18 @@ def process_events_with_charge_and_launches(event_chunk, pulses_df, pos_array, d
         min_distances, starting_points = calculate_minimum_distance_to_track(
             pos_array, event.position_x, event.position_y, event.position_z, event.zenith, event.azimuth, event.track_length
         )
+        # Store the distance for every DOM, regardless of charge/launch
+        #for dom_idx in range(len(pos_array)):
+        #    dom_all_distances[dom_idx].append(min_distances[dom_idx])
+        
         #print_memory_usage("After calculating minimum distances")
         min_distances_events.append(min_distances)
         starting_points_events.append(starting_points)
         # Identify DOMs within the distance range
         doms_in_range_mask = (distance_range[0] <= min_distances) & (min_distances < distance_range[1])
         dom_indices = np.where(doms_in_range_mask)[0]
-
+        for dom_idx in dom_indices:
+            dom_all_distances[dom_idx].append(min_distances[dom_idx])
         # Increment expected hits for DOMs in range
         expected_hits[dom_indices] += 1
         dom_event_map.extend([(dom_idx, event_no) for dom_idx in dom_indices])
@@ -144,7 +150,7 @@ def process_events_with_charge_and_launches(event_chunk, pulses_df, pos_array, d
         dom_charges = [np.array(charges) for charges in dom_charges]
         dom_distances = [np.array(distances) for distances in dom_distances]
     print_memory_usage("After processing events")
-    return expected_hits, total_charge, launches, dom_event_map, dom_position_map, min_distances_events, dom_times, dom_charges, dom_distances, starting_points_events, np.array(all_dom_distances), np.array(all_dom_charges)
+    return expected_hits, total_charge, launches, dom_event_map, dom_position_map, min_distances_events, dom_times, dom_charges, dom_distances, starting_points_events, np.array(all_dom_distances), np.array(all_dom_charges), dom_all_distances
 
 def process_chunk(event_chunk, pulses_df, pos_array, distance_range):
     
@@ -267,9 +273,11 @@ def plot_scatter_metrics(aggregated_metrics_79, aggregated_metrics_80, aggregate
         #     plt.scatter(z, value, label=f"String 89, RDE={rde:.2f}" if i == 0 else "", 
         #                 color="purple", alpha=0.7, s=50, marker=marker)
         # Plot labels and legends
-        plt.xlabel("Depth (m)")
-        plt.ylabel(metric_name.replace("_", " ").title())
-        plt.title(f"{metric_name.replace('_', ' ').title()} vs Depth (Strings 79, 80, 84)")
+        plt.xlabel("Depth (m)", fontsize=22)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.ylabel(metric_name.replace("_", " ").title(), fontsize=22)
+        plt.title(f"{metric_name.replace('_', ' ').title()} vs Depth (Strings 79, 80, 84)", fontsize=22)
         plt.legend()
         plt.grid(axis="both", linestyle="--", alpha=0.7)
         plt.tight_layout()
@@ -440,21 +448,29 @@ def plot_histogram_monitored(aggregated_metrics_79, aggregated_metrics_80, aggre
         plt.close()
 
 
-def plot_histogram_monitored_expected(aggregated_metrics_79, aggregated_metrics_80, aggregated_metrics_84, output_dir):
+def plot_histogram_monitored_expected(aggregated_metrics_79, aggregated_metrics_80, aggregated_metrics_84, output_dir,distance_range):
     """
     Generate histogram of total charge relative to the DOM on string 80 in the same layer.
     Only DOMs below z=0 with matching RDE values for nearest neighbors are considered.
     """
     def filter_valid_doms(metrics):
-        mask = (np.array(metrics["dom_z"]) < 0)
-        return {key: np.array(val)[mask] for key, val in metrics.items()}
+        mask = np.array(metrics["dom_z"]) < 0
+        filtered_metrics = {}
+        for key, val in metrics.items():
+            val_array = np.array(val)
+            if len(val_array) == len(mask):
+                filtered_metrics[key] = val_array[mask]
+            else:
+                # Don't apply the mask — this field doesn't match DOM count
+                filtered_metrics[key] = val_array
+        return filtered_metrics
 
     metrics_79 = filter_valid_doms(aggregated_metrics_79)
     metrics_80 = filter_valid_doms(aggregated_metrics_80)
     metrics_84 = filter_valid_doms(aggregated_metrics_84)
     #metrics_85 = filter_valid_doms(aggregated_metrics_85)
 
-    def has_matching_neighbors(index, metrics, n_neighbors=2):
+    def has_matching_neighbors(index, metrics, n_neighbors=0):
         """
         Check if the DOM at the given overall index (in metrics) has the same RDE value
         as its two closest neighbors on each side (up to 4 total) among DOMs on string 80.
@@ -504,29 +520,13 @@ def plot_histogram_monitored_expected(aggregated_metrics_79, aggregated_metrics_
                 return False
         return True
 
-    # def find_monitor_charge(dom_z, metrics, rde_target):
-    #     valid = np.where((metrics['rde'] == rde_target) & (metrics['string'] == 80))[0]
-    #     if len(valid) == 0:
-    #         return np.nan
-    #     nearest_idx = valid[np.argmin(np.abs(metrics['dom_z'][valid] - dom_z))]
-    #     return (metrics['total_charge']/metrics['expected_hits'])[nearest_idx]
-
-    # def compute_ratios(metrics, monitor_metrics, rde_target):
-    #     return [
-    #         total_charge / expected_hits / find_monitor_charge(dom_z, monitor_metrics, rde_target)
-    #         for idx, (dom_z, total_charge, expected_hits, rde) in enumerate(zip(metrics['dom_z'], metrics['total_charge'],metrics['expected_hits'], metrics['rde']))
-    #         if find_monitor_charge(dom_z, monitor_metrics, rde_target) > 0
-    #         and rde == rde_target
-    #         and has_matching_neighbors(idx, monitor_metrics)  # Note the plural
-    #     ]
-
     # Loop over each RDE value you want to analyze.
     for rde_value in [1.0, 1.35]:
         
         if rde_value == 1.0:
-            bin_count = 29
+            hist_range = (0.6, 1.6)
         elif rde_value == 1.35:
-            bin_count = 9
+            hist_range = (0.6, 1.2)
         else:
             continue
         ratios_79 = []
@@ -581,19 +581,23 @@ def plot_histogram_monitored_expected(aggregated_metrics_79, aggregated_metrics_
            # ratios_85.append(ratio_85)
         # Print the length of the ratios for each string.
         print(f"RDE={rde_value}: Ratios 79={len(ratios_79)}, Ratios 80={len(ratios_80)}, Ratios 84={len(ratios_84)}")
-        
+        all_ratios = np.concatenate([ratios_79, ratios_80, ratios_84])
+
         # Now plot the histograms for this RDE value.
         plt.figure(figsize=(10, 6))
-        plt.hist(ratios_79, bins=bin_count, alpha=0.5, label='String 79', color='blue')
-        plt.hist(ratios_80, bins=bin_count, alpha=0.5, label='String 80', color='green')
-        plt.hist(ratios_84, bins=bin_count, alpha=0.5, label='String 84', color='orange')
+        plt.hist(ratios_79, bins=50, range = hist_range, alpha=0.5, label='String 79', color='blue', histtype = 'stepfilled')
+        #plt.hist(ratios_80, bins=bin_count, alpha=0.5, range = (0.6,1.7), label='String 80', color='green')
+        plt.hist(ratios_84, bins=50, alpha=0.5, range = hist_range, label='String 84', color='orange', histtype = 'stepfilled')
        # plt.hist(ratios_85, bins=bin_count, alpha=0.5, label='String 85', color='purple')
-        plt.xlabel('Total Charge / expected_hits / Monitor DOM Total Charge')
-        plt.ylabel('Frequency')
-        plt.title(f'RIDE Relative to String 80 DOM (RDE={rde_value})')
-        plt.legend()
+        plt.xlabel('Total Charge / expected_hits / Monitor DOM', fontsize=20)
+        plt.ylabel('Frequency', fontsize=20)
+        plt.xticks(fontsize=15)
+        plt.xlim(hist_range)  # <- Enforces the correct x-axis range
+        plt.title(f'RIDE Relative to String 80 DOM (RDE={rde_value})', fontsize=22)
+        plt.legend(fontsize=15, loc='upper right')
         plt.grid(True, linestyle='--', alpha=0.7)
-        plt.savefig(f"{output_dir}/RIDE_histogram_rde_2Nearest_10_110_{rde_value}_no_SRT.png")
+        distance_str = f"{distance_range[0]}_{distance_range[1]}"
+        plt.savefig(f"{output_dir}/RIDE_histogram_rde_0Nearest_{distance_str}_{rde_value}.png")
         plt.close()
 
 def plot_histogram_monitored_above_0(aggregated_metrics_79, aggregated_metrics_80, aggregated_metrics_84, output_dir):
@@ -909,28 +913,28 @@ def plot_track_distance_histogram(aggregated_metrics_80, aggregated_metrics_83, 
       output_dir: Directory path where the histogram image will be saved.
       bins: Number of bins for the histogram (default is 30).
     """
-    def filter_valid_doms(metrics):
-        # Only consider DOMs below z=0.
-        mask = np.array(metrics["dom_z"]) < 0
-        return {key: np.array(val)[mask] for key, val in metrics.items()}
+    # def filter_valid_doms(metrics):
+    #     # Only consider DOMs below z=0.
+    #     mask = np.array(metrics["dom_z"]) < 0
+    #     return {key: np.array(val)[mask] for key, val in metrics.items()}
 
-    # Filter metrics for each string.
-    metrics_80 = filter_valid_doms(aggregated_metrics_80)
-    metrics_83 = filter_valid_doms(aggregated_metrics_83)
-    metrics_84 = filter_valid_doms(aggregated_metrics_84)
-    metrics_85 = filter_valid_doms(aggregated_metrics_85)
-    metrics_86 = filter_valid_doms(aggregated_metrics_86)
-    metrics_81 = filter_valid_doms(aggregated_metrics_81)
+    # # Filter metrics for each string.
+    metrics_80 = aggregated_metrics_80
+    metrics_83 = aggregated_metrics_83
+    metrics_84 = aggregated_metrics_84
+    metrics_85 = aggregated_metrics_85
+    metrics_86 = aggregated_metrics_86
+    metrics_81 = aggregated_metrics_81
 
     # Prepare a color map for the different strings.
     color_map = {80: 'black', 83: 'blue', 84: 'green', 85: 'orange', 86: 'purple', 81: 'red'}
     # Create a mapping from string number to its filtered metrics.
     metrics_dict = {
         80: metrics_80,
-        83: metrics_83,
-        84: metrics_84,
+      #  83: metrics_83,
+     #   84: metrics_84,
         85: metrics_85,
-        86: metrics_86,
+       # 86: metrics_86,
         81: metrics_81
     }
 
@@ -942,7 +946,7 @@ def plot_track_distance_histogram(aggregated_metrics_80, aggregated_metrics_83, 
             distances = np.hstack(met["distance"]).astype(np.float64)
         else:
             distances = np.array(met["distance"], dtype=np.float64)
-        plt.hist(distances, bins=bins, alpha=0.5, label=f'String {string_id}', color=color_map[string_id])
+        plt.hist(distances, bins=bins, alpha=0.5, label=f'String {string_id}', color=color_map[string_id], histtype='step')
 
     plt.xlabel('Distance from Track (m)')
     plt.ylabel('Frequency')
@@ -1052,7 +1056,7 @@ def process_zenith_bin(params):
 
 
 
-def batched_process(func, params_list, batch_size=10, max_workers=4):
+def batched_process(func, params_list, batch_size=10, max_workers=10):
     """
     Process the params_list in batches using ProcessPoolExecutor.
     """
@@ -1068,7 +1072,7 @@ def batched_process(func, params_list, batch_size=10, max_workers=4):
 
 def heatmap_normalized_RDE_focus84_monitor80(distance_range=(10, 110),
                                                zenith_bin_step=5, output_dir=None,
-                                               batch_size=10, max_workers=8):
+                                               batch_size=10, max_workers=40):
     """
     Compute and plot a heatmap of normalized RDE values.
     Uses the global DataFrames already loaded.
@@ -1101,7 +1105,7 @@ def heatmap_normalized_RDE_focus84_monitor80(distance_range=(10, 110),
     # Plot the heatmap.
     plt.figure(figsize=(10, 8))
     extent = [max_zen_values[0], max_zen_values[-1], min_zen_values[0], min_zen_values[-1]]
-    im = plt.imshow(heatmap, origin='lower', extent=extent, aspect='auto', interpolation='nearest', vmin=1.3, vmax=1.55)
+    im = plt.imshow(heatmap, origin='lower', extent=extent, aspect='auto', interpolation='nearest', vmin=1.0,vcenter = 1.35, vmax=1.55)
     plt.xlabel('Max Zenith (°)')
     plt.ylabel('Min Zenith (°)')
     plt.title('Heatmap of Normalized RDE (String 84 / String 80)\n'
@@ -1119,24 +1123,29 @@ def heatmap_normalized_RDE_focus84_monitor80(distance_range=(10, 110),
 def main():
     global global_df_truth, global_pulses_df
     #file_path = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_no_cuts.db"
-    #file_path = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db"
-    file_path = '/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/filtered_all_non_clean.db'
+    file_path = "/groups/icecube/simon/GNN/workspace/Scripts/filtered_all_big_data.db"
+    #file_path = '/groups/icecube/simon/GNN/workspace/data/Converted_I3_file/filtered_all_non_clean.db'
     #file_path = " /groups/icecube/petersen/GraphNetDatabaseRepository/dev_lvl3_genie_burnsample/dev_lvl3_genie_burnsample_v5.db"
     con = sqlite3.connect(file_path)
 
     df_truth = pd.read_sql_query("SELECT * FROM truth", con)
     filtered_events = df_truth['event_no'].unique()
-    x = 1000000
-    pulse_query = f"""
+    # x = 1000000
+    # pulse_query = f"""
+    # SELECT dom_x, dom_y, dom_z, charge, dom_time, event_no, string, rde, dom_number
+    # FROM SplitInIcePulses
+    # WHERE event_no IN (
+    #     SELECT DISTINCT event_no
+    #     FROM SplitInIcePulses
+    #     ORDER BY event_no
+    #     LIMIT {x}
+    # )
+    # """
+    pulse_query = """
     SELECT dom_x, dom_y, dom_z, charge, dom_time, event_no, string, rde, dom_number
-    FROM SplitInIcePulses
-    WHERE event_no IN (
-        SELECT DISTINCT event_no
-        FROM SplitInIcePulses
-        ORDER BY event_no
-        LIMIT {x}
-    )
-    """
+    FROM SplitInIcePulsesSRT """
+    
+    
     pulses_df = pd.read_sql_query(pulse_query, con)
     
     con.close()
@@ -1145,167 +1154,174 @@ def main():
     
     output_dir = "/groups/icecube/simon/GNN/workspace/Plots"
     os.makedirs(output_dir, exist_ok=True)
+    print("Memory usage before processing: ", psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024), "MB")
     
     pulses_df['corrected_dom_time'] = pulses_df['dom_time'] - pulses_df.groupby('event_no')['dom_time'].transform('min')
-    distance_range = (10, 110)
+    distance_range = [(10, 110) ,(5,60)]
     #focus_depth_bins = all_depth_bins[:-1]
-    
+    for current_range in distance_range:
+        
+        print(f"Processing distance range: {current_range}")
     # Containers for results
-    aggregated_metrics_79 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
-    aggregated_metrics_80 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+        aggregated_metrics_79 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+        aggregated_metrics_80 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
     #aggregated_metrics_47 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": []}
-    aggregated_metrics_84 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
-    aggregated_metrics_85 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
-    aggregated_metrics_81 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
-    aggregated_metrics_82 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
-    aggregated_metrics_83 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
-    aggregated_metrics_86 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
-    print_memory_usage("After initializing metrics containers")
-
+        aggregated_metrics_84 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+    # aggregated_metrics_85 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+    # aggregated_metrics_81 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+    # aggregated_metrics_82 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+    # aggregated_metrics_83 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+    # aggregated_metrics_86 = {"dom_z": [], "total_charge": [], "expected_hits": [], "launches": [], "rde": [], "string": [], "dom_number": [], "distance": []}
+    # print_memory_usage("After initializing metrics containers")
     # Iterate over strings
-    for string, metrics in [(79, aggregated_metrics_79), (80, aggregated_metrics_80), (84, aggregated_metrics_84), (85, aggregated_metrics_85), (81, aggregated_metrics_81), (82, aggregated_metrics_82), (83, aggregated_metrics_83), (86, aggregated_metrics_86)]:
-        print(f"Processing string {string}...")
+    
+        for string, metrics in [(79, aggregated_metrics_79), (80, aggregated_metrics_80), (84, aggregated_metrics_84)]:#, (85, aggregated_metrics_85), (81, aggregated_metrics_81), (82, aggregated_metrics_82), (83, aggregated_metrics_83), (86, aggregated_metrics_86)]:
+            print(f"Processing string {string}...")
 
-        doms_filtered = pulses_df[pulses_df['string'] == string]
-        if doms_filtered.empty:
-            print(f"No DOMs found for string {string}.")
-            continue
+            doms_filtered = pulses_df[pulses_df['string'] == string]
+            if doms_filtered.empty:
+                print(f"No DOMs found for string {string}.")
+                continue
 
-        # Convert filtered DOMs into numpy array
-        pos_array_combined = doms_filtered[['dom_x', 'dom_y', 'dom_z']].drop_duplicates().to_numpy()
+            # Convert filtered DOMs into numpy array
+            pos_array_combined = doms_filtered[['dom_x', 'dom_y', 'dom_z']].drop_duplicates().to_numpy()
 
-        # Filter `pulses_df` for relevant events
-        relevant_event_ids = doms_filtered['event_no'].unique()
-        filtered_pulses_df = pulses_df[pulses_df['event_no'].isin(relevant_event_ids) & (pulses_df['string'] == string)]
-        
-        #shared_mem, shared_pulses_np = create_shared_numpy_array(filtered_pulses_df)
-        pulses_columns = filtered_pulses_df.columns
-        event_chunks = np.array_split(df_truth, 12)
-        pulses_chunks = [filtered_pulses_df[filtered_pulses_df["event_no"].isin(chunk["event_no"])] for chunk in event_chunks]
-        cols_to_send = ["event_no", "dom_x", "dom_y", "dom_z", "charge","string", "corrected_dom_time","rde", "dom_number"]
-        pulses_chunks = [chunk[cols_to_send].copy() for chunk in pulses_chunks]
-        print_memory_usage(f"After filtering for string {string}")
+            # Filter `pulses_df` for relevant events
+            relevant_event_ids = doms_filtered['event_no'].unique()
+            filtered_pulses_df = pulses_df[pulses_df['event_no'].isin(relevant_event_ids) & (pulses_df['string'] == string)]
+            
+            #shared_mem, shared_pulses_np = create_shared_numpy_array(filtered_pulses_df)
+            pulses_columns = filtered_pulses_df.columns
+            event_chunks = np.array_split(df_truth, 12)
+            pulses_chunks = [filtered_pulses_df[filtered_pulses_df["event_no"].isin(chunk["event_no"])] for chunk in event_chunks]
+            cols_to_send = ["event_no", "dom_x", "dom_y", "dom_z", "charge","string", "corrected_dom_time","rde", "dom_number"]
+            pulses_chunks = [chunk[cols_to_send].copy() for chunk in pulses_chunks]
+            print_memory_usage(f"After filtering for string {string}")
 
-        # Run processing in parallel
-        # Step 3: Run in parallel, sending only relevant pulses to each worker
-        
-        try:
-            with ProcessPoolExecutor(max_workers=12) as executor:
-                combined_results = list(
-                    executor.map(
-                        process_chunk,
-                        event_chunks,  # Unique event chunks
-                        pulses_chunks,  # Pre-filtered pulses per chunk
-                        [pos_array_combined] * 12,
-                        [distance_range] * 12,
+            # Run processing in parallel
+            # Step 3: Run in parallel, sending only relevant pulses to each worker
+            
+            try:
+                with ProcessPoolExecutor(max_workers=12) as executor:
+                    combined_results = list(
+                        executor.map(
+                            process_chunk,
+                            event_chunks,  # Unique event chunks
+                            pulses_chunks,  # Pre-filtered pulses per chunk
+                            [pos_array_combined] * 12,
+                            [current_range] * 12,
+                        )
                     )
-                )
-        except Exception as e:
-            print(f"ERROR in main process: {e}")
-            import traceback
-            traceback.print_exc()
+            except Exception as e:
+                print(f"ERROR in main process: {e}")
+                import traceback
+                traceback.print_exc()
 
 
-        print_memory_usage("After processing events in parallel")
+            print_memory_usage("After processing events in parallel")
+            
+            # Aggregate results for each DOM
+            for dom_idx, dom_z in enumerate(doms_filtered["dom_z"].unique()):
+                dom_mask = doms_filtered["dom_z"] == dom_z
+                
+                rde_value = doms_filtered[dom_mask]["rde"].iloc[0]  # RDE for the current DOM
+                dom_number = doms_filtered[dom_mask]["dom_number"].iloc[0]  # DOM number for the current DOM
+                # Aggregate metrics for the current DOM
+                dom_total_charge = np.sum([
+                    np.sum(result[1][dom_idx]) for result in combined_results 
+                    if dom_idx < len(result[1])  # Only access valid indices
+                ])
+                
+                dom_expected_hits = np.sum([
+                    np.sum(result[0][dom_idx]) for result in combined_results 
+                    if dom_idx < len(result[0])  # Only access valid indices
+                ])
+                
+                dom_launches = np.sum([
+                    np.sum(result[2][dom_idx]) for result in combined_results 
+                    if dom_idx < len(result[2])  # Only access valid indices
+                ])
+                
+                dom_distances = np.hstack([
+                    np.array(result[12][dom_idx], dtype=np.float64)
+                    for result in combined_results
+                    if dom_idx < len(result[12])
+                ])
+                
+                # Store results for the current DOM
+                metrics["dom_z"].append(dom_z) 
+                metrics["rde"].append(rde_value)
+                metrics["string"].append(string)
+                metrics["total_charge"].append(dom_total_charge)
+                metrics["expected_hits"].append(dom_expected_hits)
+                metrics["launches"].append(dom_launches)
+                metrics["dom_number"].append(dom_number)
+                if dom_z < 0:
+                    metrics["distance"].extend(dom_distances)
+                
+
+        print_memory_usage("After aggregating metrics")
+        # Generate scatter plots
+        plot_scatter_metrics(
+            aggregated_metrics_79,
+            aggregated_metrics_80,
+            #aggregated_metrics_47,
+            aggregated_metrics_84,
+           # aggregated_metrics_85,
+            output_dir
+        )
+        # plot_histogram_monitored(
+        #     aggregated_metrics_79,
+        #     aggregated_metrics_80,
+        #     aggregated_metrics_84,
+        #  #   aggregated_metrics_85,
+        #     output_dir
+        # )
+        # plot_histogram_monitored_expected(
+        #     aggregated_metrics_79,
+        #     aggregated_metrics_80,
+        #     aggregated_metrics_84,
+        # #   aggregated_metrics_85,
+        #     output_dir,
+        #     current_range
+        # )
         
-        # Aggregate results for each DOM
-        for dom_idx, dom_z in enumerate(doms_filtered["dom_z"].unique()):
-            dom_mask = doms_filtered["dom_z"] == dom_z
-            
-            rde_value = doms_filtered[dom_mask]["rde"].iloc[0]  # RDE for the current DOM
-            dom_number = doms_filtered[dom_mask]["dom_number"].iloc[0]  # DOM number for the current DOM
-            # Aggregate metrics for the current DOM
-            dom_total_charge = np.sum([
-                np.sum(result[1][dom_idx]) for result in combined_results 
-                if dom_idx < len(result[1])  # Only access valid indices
-            ])
-            
-            dom_expected_hits = np.sum([
-                np.sum(result[0][dom_idx]) for result in combined_results 
-                if dom_idx < len(result[0])  # Only access valid indices
-            ])
-            
-            dom_launches = np.sum([
-                np.sum(result[2][dom_idx]) for result in combined_results 
-                if dom_idx < len(result[2])  # Only access valid indices
-            ])
-            
-            dom_distances = np.hstack([np.atleast_1d(result[10]).astype(np.float64) for result in combined_results])
+        # plot_histogram_monitored_above_0(
+        #     aggregated_metrics_79,
+        #     aggregated_metrics_80,
+        #     aggregated_metrics_84,
+        #     output_dir
+        # )
+        #plot_energy_distribution_from_truth(df_truth, output_dir)
+        # plot_normalized_RDE_vs_dom_number_bar(
+        #     aggregated_metrics_80,
+        #     aggregated_metrics_83,
+        #     aggregated_metrics_84,
+        #     aggregated_metrics_85,
+        #     aggregated_metrics_86,
+        #     aggregated_metrics_81,
+        #     output_dir
+        # )
+        
+        
+        # plot_track_distance_histogram(
+        #     aggregated_metrics_80,
+        #     aggregated_metrics_83,
+        #     aggregated_metrics_84,
+        #     aggregated_metrics_85,
+        #     aggregated_metrics_86,
+        #     aggregated_metrics_81,
+        #     output_dir
+        # )
+        
+        # global_df_truth = df_truth.copy()
+        # global_pulses_df = pulses_df.copy()
 
-
-            
-            # Store results for the current DOM
-            metrics["dom_z"].append(dom_z) 
-            metrics["rde"].append(rde_value)
-            metrics["string"].append(string)
-            metrics["total_charge"].append(dom_total_charge)
-            metrics["expected_hits"].append(dom_expected_hits)
-            metrics["launches"].append(dom_launches)
-            metrics["dom_number"].append(dom_number)
-            metrics["distance"].append(dom_distances)
-            
-
-    print_memory_usage("After aggregating metrics")
-    # Generate scatter plots
-    # plot_scatter_metrics(
-    #     aggregated_metrics_79,
-    #     aggregated_metrics_80,
-    #     #aggregated_metrics_47,
-    #     aggregated_metrics_84,
-    #    # aggregated_metrics_85,
-    #     output_dir
-    # )
-    plot_histogram_monitored(
-        aggregated_metrics_79,
-        aggregated_metrics_80,
-        aggregated_metrics_84,
-     #   aggregated_metrics_85,
-        output_dir
-    )
-    plot_histogram_monitored_expected(
-        aggregated_metrics_79,
-        aggregated_metrics_80,
-        aggregated_metrics_84,
-     #   aggregated_metrics_85,
-        output_dir
-    )
-    
-    # plot_histogram_monitored_above_0(
-    #     aggregated_metrics_79,
-    #     aggregated_metrics_80,
-    #     aggregated_metrics_84,
-    #     output_dir
-    # )
-    #plot_energy_distribution_from_truth(df_truth, output_dir)
-    # plot_normalized_RDE_vs_dom_number_bar(
-    #     aggregated_metrics_80,
-    #     aggregated_metrics_83,
-    #     aggregated_metrics_84,
-    #     aggregated_metrics_85,
-    #     aggregated_metrics_86,
-    #     aggregated_metrics_81,
-    #     output_dir
-    # )
-    
-    
-    # plot_track_distance_histogram(
-    #     aggregated_metrics_80,
-    #     aggregated_metrics_83,
-    #     aggregated_metrics_84,
-    #     aggregated_metrics_85,
-    #     aggregated_metrics_86,
-    #     aggregated_metrics_81,
-    #     output_dir
-    # )
-    
-    # global_df_truth = df_truth.copy()
-    # global_pulses_df = pulses_df.copy()
-
-    # heatmap_normalized_RDE_focus84_monitor80(distance_range=(10, 110),
-    #                                            zenith_bin_step=5,
-    #                                            output_dir=output_dir,
-    #                                            batch_size=10,
-    #                                            max_workers=10)
-    print_memory_usage("After plotting scatter metrics")
+        # heatmap_normalized_RDE_focus84_monitor80(distance_range=(10, 110),
+        #                                            zenith_bin_step=5,
+        #                                            output_dir=output_dir,
+        #                                            batch_size=10,
+        #                                            max_workers=40)
+        print_memory_usage("After plotting scatter metrics")
 if __name__ == "__main__":
     main()
